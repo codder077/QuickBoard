@@ -31,8 +31,9 @@ class BookingService {
   }
 
   async bookTicket(user, bookingData) {
+
     const { trainId, coach, passengers } = bookingData;
-    console.log(trainId, coach, passengers, "wawwewew");
+    console.log(user, "wawwewew");
     // Check seat availability
     const availableSeats = await this.checkSeatAvailability(trainId, coach);
 
@@ -95,7 +96,7 @@ class BookingService {
 
       // Create new booking
       const booking = new Booking({
-        user: user.id,
+        user: user,
         tickets: savedTickets.map((ticket) => ticket._id),
         totalFare,
         paymentStatus: "PENDING",

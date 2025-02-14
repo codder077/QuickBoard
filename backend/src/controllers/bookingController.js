@@ -26,9 +26,9 @@ class BookingController {
         coach,
         amount
       } = req.body;
-      console.log(req.body, "wawwewew");
+      console.log(req.user, "wawwewew");
       // Create booking through service
-      console.log(trainId, fromStation, toStation, travelStartDate, travelEndDate, passengers, "wawwewew");
+      console.log(trainId, fromStation, toStation, travelStartDate, travelEndDate, passengers, "wawwrwrw");
       const bookingResult = await bookingService.bookTicket(req.user, {
         trainId,
         fromStation,
@@ -50,16 +50,16 @@ class BookingController {
             return res.status(500).send({ message: "Something went wrong" });
         }
         // console.log("Payment:", payment);
-        order.orderId = payment.id;
-        await order.save();
+        console.log(bookingResult)
+        await notificationService.sendBookingConfirmation(bookingResult);
         res.status(201).json({
             message: 'Order created successfully! Complete payment to confirm.',
             payment,
-            order,
+            orderId:payment.id,
         });
     });
       // Send booking confirmation email
-      await notificationService.sendBookingConfirmation(bookingResult);
+     
 
       res.status(201).json({ success: true, data: bookingResult });
     } catch (error) {

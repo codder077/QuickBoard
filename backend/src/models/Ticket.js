@@ -5,7 +5,7 @@ const ticketSchema = new mongoose.Schema(
   {
     pnr: {
       type: String,
-      required: true,
+      // required: true,
       unique: true,
     },
     train: {
@@ -63,11 +63,11 @@ const ticketSchema = new mongoose.Schema(
       enum: ["CONFIRMED", "WAITLISTED", "CANCELLED"],
       default: "CONFIRMED",
     },
-    booking: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Booking",
-      required: true,
-    },
+    // booking: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "Booking",
+    //   required: true,
+    // },
     fare: {
       type: Number,
       required: true,
