@@ -190,7 +190,10 @@ const TrainBookingPage = () => {
         }, []);
         console.log(uniqueTrains);
 
-        setShowTrainData(uniqueTrains.map(train => ({
+        // Filter out invalid trains before mapping
+        const validTrains = uniqueTrains.filter(train => train.trainNo && train.trainName);
+
+        setShowTrainData(validTrains.map(train => ({
           train: {
             train_ID: train.trainNo,
             train_name: train.trainName,
@@ -434,7 +437,7 @@ const TrainBookingPage = () => {
                 <span className="text-yellow-400 mx-2">Trains</span>
               </h2>
               
-              {showTrainData.map((train) => (
+              {showTrainData.length>0 && showTrainData.map((train) => (
                 <div key={train.train.train_ID} className="bg-black/50 backdrop-blur-sm border-2 border-yellow-400/30 rounded-xl p-6 mb-6 transform hover:scale-[1.02] transition-all duration-300">
                   <div className="flex justify-between items-center">
                     <div>
