@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import toast, { Toaster } from "react-hot-toast";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 
 const Login = () => {
     const navigate = useNavigate();
@@ -11,80 +11,92 @@ const Login = () => {
         if(isLoggedInUser){
             navigate('/');
         }
-    
-      
     }, [])
     
     const onSignIn = async () => {
-
-        console.log("jk");
         try {
-            console.log(user);
-
-            const response = await axios.post("http://localhost:8000/api/login", user);
+            const response = await axios.post("http://localhost:8000/api/users/login", user);
             
-            localStorage.setItem('emailData',user.email);
-            toast.success(response.data.message);
-            console.log("Signed in Succesfully");
-            // router.push("/trading");
-            window.location.reload();
-            // navigate("/");
+            if (response.data.success) {
+                localStorage.setItem('token', response.data.token);
+                localStorage.setItem('userData', JSON.stringify(response.data.data));
+                
+                toast.success("Signed in Successfully");
+                navigate('/');
+            }
         } catch (error) {
-            console.log("Signin failed", error.message);
-            toast.error(error.message);
+            const errorMessage = error.response?.data?.error || "Login failed";
+            toast.error(errorMessage);
         }
-
     };
+
     const [user, setUser] = useState({
         email: "",
         password: ""
     });
+
     return (
-        <>
-            <div className="flex flex-col w-[20rem] mt-[10vh] container gap-[1.5rem] mx-auto mb-[5rem]">
+        <div className="relative w-full min-h-screen flex items-center justify-center pt-16 my-8">
+            <div className="absolute inset-0 z-0">
+                <img
+                    src="./img/gif2.gif"
+                    alt="Travel Background"
+                    className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/40"></div>
+            </div>
+
+            <div className="relative z-10 w-full max-w-md p-8 rounded-2xl backdrop-blur-sm border-2 border-yellow-400/30 mx-4">
                 <Toaster position="top-center" />
 
-                <div>
-                    <h1 className="merriweather-font font-bold text-[2rem]">Login</h1>
-                </div>
+                <h1 className="text-4xl font-extrabold text-white mb-8 text-center">
+                    Welcome <span className="text-yellow-400">Back</span>
+                </h1>
 
-                <div className="flex flex-col">
-                    <h2 className="merriweather-font font-bold text-[1rem]">Email Id</h2>
-                    <input
-                        type="text"
-                        className="border-2 border-zinc-300  px-[1rem] py-[0.6rem]  "
-                        name={user.email}
-                        id="email"
-                        onChange={(e) => setUser({ ...user, email: e.target.value })}
-                    />
-                </div>
-                <div className="flex flex-col">
-                    <h2 className="merriweather-font font-bold text-[1rem]">Password</h2>
-                    <input
-                        type="password"
-                        className="border-2 border-zinc-300   px-[1rem] py-[0.6rem] "
-                        name={user.password}
-                        id="password"
-                        onChange={(e) => setUser({ ...user, password: e.target.value })}
-                    />
-                </div>
+                <div className="space-y-6">
+                    <div>
+                        <label htmlFor="email" className="block text-base font-medium text-white">
+                            Email Address
+                        </label>
+                        <input
+                            type="email"
+                            id="email"
+                            className="mt-1 block w-full rounded-xl border border-yellow-400/30 bg-transparent px-5 py-3 text-base text-white outline-none focus:border-yellow-400 focus:shadow-md"
+                            onChange={(e) => setUser({ ...user, email: e.target.value })}
+                        />
+                    </div>
 
-                <div>
-                    <p className="text-gray-500">
-                        Don&apos;t have any account!{" "}
-                    </p>
-                    <span className="text-orange-500">Sign Up</span>
-                </div>
-                <div>
+                    <div>
+                        <label htmlFor="password" className="block text-base font-medium text-white">
+                            Password
+                        </label>
+                        <input
+                            type="password"
+                            id="password"
+                            className="mt-1 block w-full rounded-xl border border-yellow-400/30 bg-transparent px-5 py-3 text-base text-white outline-none focus:border-yellow-400 focus:shadow-md"
+                            onChange={(e) => setUser({ ...user, password: e.target.value })}
+                        />
+                    </div>
+
+                    <div className="text-center text-white">
+                        Don't have an account?{" "}
+                        <Link to="/signup" className="text-yellow-400 hover:text-yellow-300 transition-colors">
+                            Sign Up
+                        </Link>
+                    </div>
+
                     <button
-                        className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600"
                         onClick={onSignIn}
+                        className="group w-full px-6 py-3 text-base font-semibold bg-yellow-400 text-gray-900 rounded-xl hover:bg-yellow-300 transform hover:scale-110 hover:shadow-lg hover:shadow-yellow-400/50 transition-all duration-300 ease-in-out flex items-center justify-center backdrop-blur-sm"
                     >
                         Login
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 group-hover:translate-x-3 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
                     </button>
                 </div>
             </div>
-        </>
+        </div>
     );
 }
 

@@ -2,11 +2,12 @@ import React from "react";
 
 const Tagline = () => {
   return (
-    <div className="text-center bg-gray-200 p-8">
-      <p className="text-4xl font-bold text-blue-500 mb-4 mt-4">
-        Predict. Plan. Prevail
+    <div className="text-center bg-black/90 p-8">
+      <p className="text-5xl font-extrabold text-white mb-4 mt-4 transform hover:scale-105 transition-all duration-500">
+        Predict. Plan.
+        <span className="text-yellow-400 mx-2 animate-glow">Prevail</span>
       </p>
-      <p className="text-xl mb-4">
+      <p className="text-lg sm:text-xl text-gray-100 font-medium leading-relaxed animate-slideInRight">
         "Your Gateway to Secure and Predictable Travel"
       </p>
     </div>

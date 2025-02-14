@@ -1,124 +1,150 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const SignUp = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const isLoggedInUser = localStorage.getItem("emailData");
-    if (isLoggedInUser) {
-      navigate("/");
+    const token = localStorage.getItem('token');
+    if (token) {
+        navigate('/');
     }
-  }, []);
+  }, [navigate]);
+
   const [user, setUser] = useState({
-    fullname: "",
+    name: "",
     phone: "",
     email: "",
     password: "",
   });
 
   const onSignup = async () => {
-    console.log("hello");
-    // e.preventDefault();
     try {
-      console.log(user);
-      console.log("Frontend");
-      const response = await axios.post(
-        "http://localhost:8000/api/register",
-        user
-      );
-      console.log(response);
-      // router.push("/signin");
+      if (isNaN(user.phone)) {
+        toast.error("Phone number must be numeric");
+        return;
+      }
 
-      navigate("/login");
+      const response = await axios.post(
+        "http://localhost:8000/api/users/register",
+        {
+          ...user,
+          phone: Number(user.phone)
+        }
+      );
+
+      if (response.data.success) {
+        toast.success("Registration successful!");
+        navigate("/login");
+      }
     } catch (error) {
-      console.log("Signup failed ", error.message);
-      toast.error(error.message);
+      const errorMessage = error.response?.data?.error || "Signup failed";
+      toast.error(errorMessage);
     }
   };
 
   return (
-    <>
-      <div className="flex flex-col w-[20rem] mt-[10vh] container gap-[1.5rem] mx-auto mb-[5rem]">
-        <div>
-          <h1 className="merriweather-font font-bold text-3xl mt-8">
-            Create Your Account
-          </h1>
-        </div>
-        <div className="flex flex-col">
-          <h2 className="merriweather-font font-bold text-[1rem]">Full Name</h2>
-          <input
-            type="text"
-            className="border-2 border-zinc-300  px-[1rem] py-[0.6rem] "
-            value={user.fullname}
-            id="fullname"
-            onChange={(e) => setUser({ ...user, fullname: e.target.value })}
-          />
-        </div>
+    <div className="relative w-full min-h-screen flex items-center justify-center pt-16 mt-8">
+      <div className="absolute inset-0 z-0">
+        <img
+          src="./img/gif2.gif"
+          alt="Travel Background"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/40"></div>
+      </div>
 
-        <div className="flex flex-col">
-          <h2 className="merriweather-font font-bold text-[1rem]">Phone Number</h2>
-          <input
-            type="Number"
-            className="border-2 border-zinc-300  px-[1rem] py-[0.6rem] "
-            value={user.phone}
-            id="phone"
-            onChange={(e) => setUser({ ...user, phone: e.target.value })}
-          />
-        </div>
-        <div className="flex flex-col">
-          <h2 className="merriweather-font font-bold text-[1rem]">Email Address</h2>
-          <input
-            type="text"
-            className="border-2 border-zinc-300  px-[1rem] py-[0.6rem]  "
-            value={user.email}
-            id="email"
-            onChange={(e) => setUser({ ...user, email: e.target.value })}
-          />
-        </div>
-        <div className="flex flex-col">
-          <h2 className="merriweather-font font-bold text-[1rem]">Password</h2>
-          <input
-            type="password"
-            className="border-2 border-zinc-300   px-[1rem] py-[0.6rem] "
-            id="password"
-            value={user.password}
-            onChange={(e) => setUser({ ...user, password: e.target.value })}
-          />
-        </div>
+      <div className="relative z-10 w-full max-w-md p-8 rounded-2xl backdrop-blur-sm border-2 border-yellow-400/30 mx-4">
+        <h1 className="text-4xl font-extrabold text-white mb-8 text-center">
+          Create Your <span className="text-yellow-400">Account</span>
+        </h1>
 
-        <div>
-          <p className="text-gray-500">
-            By creating an account, You agree to{" "}
-            <span className="text-orange-400">
-              {" "}
-              QuickBoard&apos;s Terms & Conditions{" "}
-            </span>{" "}
-            and Privacy Policy.
+        <div className="space-y-6">
+          <div>
+            <label htmlFor="name" className="block text-base font-medium text-white">
+              Full Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              className="mt-1 block w-full rounded-xl border border-yellow-400/30 bg-transparent px-5 py-3 text-base text-white outline-none focus:border-yellow-400 focus:shadow-md"
+              value={user.name}
+              onChange={(e) => setUser({ ...user, name: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="phone" className="block text-base font-medium text-white">
+              Phone Number
+            </label>
+            <input
+              type="number"
+              id="phone"
+              className="mt-1 block w-full rounded-xl border border-yellow-400/30 bg-transparent px-5 py-3 text-base text-white outline-none focus:border-yellow-400 focus:shadow-md"
+              value={user.phone}
+              onChange={(e) => setUser({ ...user, phone: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="email" className="block text-base font-medium text-white">
+              Email Address
+            </label>
+            <input
+              type="email"
+              id="email"
+              className="mt-1 block w-full rounded-xl border border-yellow-400/30 bg-transparent px-5 py-3 text-base text-white outline-none focus:border-yellow-400 focus:shadow-md"
+              value={user.email}
+              onChange={(e) => setUser({ ...user, email: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-base font-medium text-white">
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              className="mt-1 block w-full rounded-xl border border-yellow-400/30 bg-transparent px-5 py-3 text-base text-white outline-none focus:border-yellow-400 focus:shadow-md"
+              value={user.password}
+              onChange={(e) => setUser({ ...user, password: e.target.value })}
+            />
+          </div>
+
+          <p className="text-gray-300 text-sm">
+            By creating an account, you agree to QuickBoard's{" "}
+            <Link to="/terms" className="text-yellow-400 hover:text-yellow-300">
+              Terms & Conditions
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy" className="text-yellow-400 hover:text-yellow-300">
+              Privacy Policy
+            </Link>
+            .
           </p>
-        </div>
-        <div>
-          <p className="text-gray-500">Already a User! </p>
-          <span
-            className="text-orange-500 cursor-pointer"
-            onClick={() => navigate("/login")}
-          >
-            Sign In
-          </span>
-        </div>
-        <div>
+
+          <div className="text-center">
+            <p className="text-gray-300">
+              Already a User?{" "}
+              <Link to="/login" className="text-yellow-400 hover:text-yellow-300">
+                Sign In
+              </Link>
+            </p>
+          </div>
+
           <button
             type="submit"
-            className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600"
+            className="w-full px-6 py-3 text-base font-semibold bg-yellow-400 text-gray-900 rounded-xl hover:bg-yellow-300 transform hover:scale-105 hover:shadow-lg hover:shadow-yellow-400/50 transition-all duration-300 ease-in-out"
             onClick={onSignup}
           >
             Register
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
