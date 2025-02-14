@@ -141,6 +141,123 @@ class TrainController {
       res.status(500).json({ success: false, error: error.message });
     }
   }
+
+  // Find trains between stations
+  async findTrainsBetweenStations(req, res) {
+    try {
+      const { startStation, endStation } = req.query;
+
+      // Validate input stations
+      const [start, end] = await Promise.all([
+        Station.findById(startStation),
+        Station.findById(endStation),
+      ]);
+
+      if (!start || !end) {
+        return res.status(404).json({
+          success: false,
+          error: "Start or end station not found",
+        });
+      }
+
+      // Find direct trains
+      const directTrains = await Train.find({
+        "route.station": { $all: [startStation, endStation] },
+        status: "Active",
+      }).populate("route.station");
+
+      // Filter trains where end station comes after start station in route
+      const validDirectTrains = directTrains.filter((train) => {
+        const startIndex = train.route.findIndex(
+          (r) => r.station.id === startStation
+        );
+        const endIndex = train.route.findIndex(
+          (r) => r.station.id === endStation
+        );
+        return startIndex < endIndex;
+      });
+
+      // Find nearby stations within 10km radius
+      const [nearbyStartStations, nearbyEndStations] = await Promise.all([
+        Station.find({
+          location: {
+            $near: {
+              $geometry: start.location,
+              $maxDistance: 10000, // 10km in meters
+            },
+          },
+          _id: { $ne: start._id },
+        }),
+        Station.find({
+          location: {
+            $near: {
+              $geometry: end.location,
+              $maxDistance: 10000, // 10km in meters
+            },
+          },
+          _id: { $ne: end._id },
+        }),
+      ]);
+
+      // Find trains from nearby stations
+      const nearbyStationTrains = await Train.find({
+        "route.station": {
+          $all: [
+            { $in: nearbyStartStations.map((s) => s._id) },
+            { $in: nearbyEndStations.map((s) => s._id) },
+          ],
+        },
+        status: "Active",
+      }).populate("route.station");
+
+      // Filter nearby trains where end station comes after start station
+      const validNearbyTrains = nearbyStationTrains.filter((train) => {
+        const startStationIndex = train.route.findIndex((r) =>
+          nearbyStartStations.some((s) => s._id.equals(r.station._id))
+        );
+        const endStationIndex = train.route.findIndex((r) =>
+          nearbyEndStations.some((s) => s._id.equals(r.station._id))
+        );
+        return startStationIndex < endStationIndex;
+      });
+
+      res.status(200).json({
+        success: true,
+        data: {
+          directTrains: validDirectTrains.map((train) => ({
+            trainNo: train.trainNo,
+            trainName: train.trainName,
+            departureTime: train.route.find(
+              (r) => r.station.id === startStation
+            ).departureTime,
+            arrivalTime: train.route.find((r) => r.station.id === endStation)
+              .arrivalTime,
+            route: train.route,
+          })),
+          alternativeTrains: validNearbyTrains.map((train) => {
+            const startStationInfo = train.route.find((r) =>
+              nearbyStartStations.some((s) => s._id.equals(r.station._id))
+            );
+            const endStationInfo = train.route.find((r) =>
+              nearbyEndStations.some((s) => s._id.equals(r.station._id))
+            );
+            return {
+              trainNo: train.trainNo,
+              trainName: train.trainName,
+              departureStation: startStationInfo.station,
+              arrivalStation: endStationInfo.station,
+              departureTime: startStationInfo.departureTime,
+              arrivalTime: endStationInfo.arrivalTime,
+              route: train.route,
+            };
+          }),
+        },
+      });
+    } catch (error) {
+      console.error("Error in findTrainsBetweenStations:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
 }
 
 module.exports = new TrainController();
