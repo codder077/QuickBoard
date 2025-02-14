@@ -2,6 +2,8 @@ const Booking = require("../models/Booking");
 const bookingService = require("../services/bookingService");
 const notificationService = require("../services/notificationService");
 const Ticket = require("../models/Ticket");
+const TicketQueue = require("../models/TicketQueue");
+const Train = require("../models/train");
 
 class BookingController {
   // Create booking
@@ -113,30 +115,36 @@ class BookingController {
   async transferBooking(req, res) {
     try {
       const { id } = req.params;
-      const { newUserId } = req.body;
+      const { newUserId, newPassengerDetails } = req.body;
 
-      const booking = await Booking.findById(id);
-
+      const booking = await Booking.findById(id).populate("tickets");
       if (!booking) {
         return res
           .status(404)
           .json({ success: false, error: "Booking not found" });
       }
 
-      // Check if the booking belongs to the user
       if (booking.user.toString() !== req.user.id) {
         return res
           .status(403)
           .json({ success: false, error: "Not authorized" });
       }
 
-      booking.user = newUserId;
-      await booking.save();
+      const transferResult = await bookingService.processTransferRequest(
+        booking.tickets[0],
+        newUserId,
+        newPassengerDetails
+      );
 
-      // Send transfer notifications
-      //   await notificationService.sendTransferNotifications(booking, newUserId);
-
-      res.status(200).json({ success: true, data: booking });
+      res.status(200).json({
+        success: true,
+        data: {
+          ...transferResult,
+          message: transferResult.transferComplete
+            ? "Transfer processed successfully"
+            : `Added to transfer queue at position ${transferResult.queuePosition}`,
+        },
+      });
     } catch (error) {
       res.status(400).json({ success: false, error: error.message });
     }
@@ -326,6 +334,219 @@ class BookingController {
       res.status(400).json({ success: false, error: error.message });
     }
   }
+
+  // Add new endpoint to sell ticket
+  // ... existing code ...
+
+  async sellTicket(req, res) {
+    try {
+      const { pnr } = req.params;
+
+      const ticket = await Ticket.findOne({ pnr }).populate([
+        {
+          path: "booking",
+          populate: ["user"],
+        },
+        "train",
+        "fromStation",
+        "toStation",
+      ]);
+
+      if (!ticket) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Ticket not found" });
+      }
+
+      if (ticket.booking.user.toString() !== req.user.id) {
+        return res
+          .status(403)
+          .json({ success: false, error: "Not authorized" });
+      }
+
+      // Determine queue type based on journey start
+      const currentDate = new Date();
+      const journeyStartDate = new Date(ticket.travelStartDate);
+      const queueType = currentDate > journeyStartDate ? "TRANSFER" : "WAITING";
+
+      // Find or create queue for this train and coach
+      let ticketQueue = await TicketQueue.findOne({
+        train: ticket.train._id,
+        coach: ticket.coach,
+        queueType: queueType,
+      });
+
+      if (!ticketQueue) {
+        ticketQueue = new TicketQueue({
+          train: ticket.train._id,
+          coach: ticket.coach,
+          queueType: queueType,
+          queueArray: [],
+        });
+        await ticketQueue.save();
+      }
+
+      // Check if there are any buy requests in the queue
+      const buyerIndex = ticketQueue.queueArray.findIndex(
+        (request) => request.requestType === "BUY"
+      );
+
+      if (buyerIndex !== -1) {
+        // Get the buyer request
+        const buyerRequest = ticketQueue.queueArray[buyerIndex];
+        // Remove the buyer from queue
+        ticketQueue.queueArray.splice(buyerIndex, 1);
+        await ticketQueue.save();
+
+        // Calculate fare based on queue type
+        let transferFare = ticket.fare;
+        if (queueType === "TRANSFER") {
+          // Add 20% premium for transfer queue
+          transferFare = ticket.fare * 1.2;
+        }
+
+        // Process transfer to the buyer
+        const transferResult = await bookingService.processTransferRequest(
+          ticket,
+          buyerRequest.user,
+          buyerRequest.passengerDetails,
+          transferFare
+        );
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            message: `Ticket transferred to waiting buyer (${queueType} queue)`,
+            transferResult,
+            fare: transferFare,
+            queueType: queueType,
+          },
+        });
+      } else {
+        // If no buyers in queue, add this as a sell request
+        const sellingRequest = {
+          requestType: "SELL",
+          user: req.user._id,
+          ticket: ticket._id,
+          passengerDetails: ticket.passenger,
+          fromStation: ticket.fromStation,
+          toStation: ticket.toStation,
+          originalFare: ticket.fare,
+        };
+
+        ticketQueue.queueArray.push(sellingRequest);
+        await ticketQueue.save();
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            message: `No buyers found. Ticket added to ${queueType} queue for selling`,
+            queuePosition: ticketQueue.queueArray.length,
+            queueType: queueType,
+          },
+        });
+      }
+    } catch (error) {
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }
+
+  async buyTicket(req, res) {
+    try {
+      const { trainId, coach, passengerDetails } = req.body;
+
+      // Determine queue type based on journey start
+      const train = await Train.findById(trainId);
+      if (!train) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Train not found" });
+      }
+
+      const currentDate = new Date();
+      const journeyStartDate = new Date(train.departureTime);
+      const queueType = currentDate > journeyStartDate ? "TRANSFER" : "WAITING";
+
+      // Find queue for this train and coach
+      let ticketQueue = await TicketQueue.findOne({
+        train: trainId,
+        coach,
+        queueType: queueType,
+      });
+
+      if (!ticketQueue) {
+        ticketQueue = new TicketQueue({
+          train: trainId,
+          coach,
+          queueType: queueType,
+          queueArray: [],
+        });
+        await ticketQueue.save();
+      }
+
+      // Check if there are any sell requests in the queue
+      const sellerIndex = ticketQueue.queueArray.findIndex(
+        (request) => request.requestType === "SELL"
+      );
+
+      if (sellerIndex !== -1) {
+        // Get the seller request
+        const sellerRequest = ticketQueue.queueArray[sellerIndex];
+        // Remove the seller from queue
+        ticketQueue.queueArray.splice(sellerIndex, 1);
+        await ticketQueue.save();
+
+        // Calculate fare based on queue type
+        let transferFare = sellerRequest.originalFare;
+        if (queueType === "TRANSFER") {
+          // Add 20% premium for transfer queue
+          transferFare = sellerRequest.originalFare * 1.2;
+        }
+
+        // Process transfer from the seller
+        const transferResult = await bookingService.processTransferRequest(
+          sellerRequest.ticket,
+          req.user._id,
+          passengerDetails,
+          transferFare
+        );
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            message: `Ticket purchased from waiting seller (${queueType} queue)`,
+            transferResult,
+            fare: transferFare,
+            queueType: queueType,
+          },
+        });
+      } else {
+        // If no sellers in queue, add this as a buy request
+        const buyingRequest = {
+          requestType: "BUY",
+          user: req.user._id,
+          passengerDetails,
+          requestedAt: new Date(),
+        };
+
+        ticketQueue.queueArray.push(buyingRequest);
+        await ticketQueue.save();
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            message: `No sellers found. Buy request added to ${queueType} queue`,
+            queuePosition: ticketQueue.queueArray.length,
+            queueType: queueType,
+          },
+        });
+      }
+    } catch (error) {
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }
+
+  // ... existing code ...
 }
 
 module.exports = new BookingController();
