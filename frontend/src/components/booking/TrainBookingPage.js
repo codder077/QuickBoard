@@ -4,9 +4,9 @@ import Button from "@mui/material/Button";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import trainData from "../../config/traindata.json";
 import axios from 'axios';
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 
 const StyledMenu = styled((props) => (
   <Menu
@@ -23,29 +23,59 @@ const StyledMenu = styled((props) => (
   />
 ))(({ theme }) => ({
   "& .MuiPaper-root": {
-    borderRadius: 6,
+    borderRadius: 12,
     marginTop: theme.spacing(1),
-    minWidth: 180,
-    color:
-      theme.palette.mode === "light"
-        ? "rgb(55, 65, 81)"
-        : theme.palette.grey[300],
+    minWidth: 280,
+    background: 'rgba(0, 0, 0, 0.9)',
+    border: '2px solid rgba(250, 204, 21, 0.3)',
+    backdropFilter: 'blur(8px)',
+    color: '#ffffff',
     boxShadow:
-      "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(0, 0, 0, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px",
+      "0 4px 6px -1px rgba(250, 204, 21, 0.1), 0 2px 4px -1px rgba(250, 204, 21, 0.06)",
     "& .MuiMenu-list": {
-      padding: "4px 0",
+      padding: "8px",
+      maxHeight: "300px",
+      overflowY: "auto",
+      "&::-webkit-scrollbar": {
+        width: "8px",
+      },
+      "&::-webkit-scrollbar-track": {
+        background: "rgba(255, 255, 255, 0.1)",
+        borderRadius: "4px",
+      },
+      "&::-webkit-scrollbar-thumb": {
+        background: "rgba(250, 204, 21, 0.5)",
+        borderRadius: "4px",
+        "&:hover": {
+          background: "rgba(250, 204, 21, 0.7)",
+        },
+      },
     },
     "& .MuiMenuItem-root": {
+      padding: "12px 16px",
+      margin: "4px 0",
+      borderRadius: "8px",
+      fontSize: "14px",
+      fontWeight: 500,
+      transition: "all 0.2s ease",
+      "&:hover": {
+        backgroundColor: "rgba(250, 204, 21, 0.2)",
+        color: "#facc15",
+      },
       "& .MuiSvgIcon-root": {
         fontSize: 18,
         color: theme.palette.text.secondary,
         marginRight: theme.spacing(1.5),
       },
       "&:active": {
-        backgroundColor: alpha(
-          theme.palette.primary.main,
-          theme.palette.action.selectedOpacity
-        ),
+        backgroundColor: "rgba(250, 204, 21, 0.3)",
+      },
+      "&.Mui-selected": {
+        backgroundColor: "rgba(250, 204, 21, 0.2)",
+        color: "#facc15",
+        "&:hover": {
+          backgroundColor: "rgba(250, 204, 21, 0.3)",
+        },
       },
     },
   },
@@ -56,83 +86,100 @@ const TrainBookingPage = () => {
   const [departingStation, setDepartingStation] = useState("");
   const [arrivingStation, setArrivingStation] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTrain, setSelectedTrain] = useState("");
   const [showTrainData, setShowTrainData] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuType, setMenuType] = useState("");
   const [coachState, setCoachState] = useState(false);
   const [fairCost, setFairCost] = useState(0);
+  const [stations, setStations] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const open = Boolean(anchorEl);
-  const userEmail = localStorage.getItem('emailData');
+  const token = localStorage.getItem('token');
+  const userData = JSON.parse(localStorage.getItem('userData') || '{}');
 
-  const onBuyTicket = async() => {
-    const data = {
-      amount: fairCost,
-      trainNo: showTrainData[0].train?.train_ID,
-      userEmail: userEmail,
-      trainName: showTrainData[0].train?.train_name,
-      departureStation: departingStation,
-      destinationStation: arrivingStation,
-      departuredate: selectedDate,
-      coach: "Sleeper",
+  useEffect(() => {
+    if (!token) {
+      navigate('/login');
+      toast.error('Please login to book tickets');
     }
+    fetchStations();
+  }, []);
 
-    const response = await axios.post('http://localhost:8000/api/bookticket', data);
-    navigate("/");
-  }
-
-  const onCoachState = (cost) => {
-    if(coachState) {
-      setFairCost(parseInt(fairCost)-parseInt(cost));
-    } else {
-      setFairCost(parseInt(fairCost)+parseInt(cost));
-    }
-    setCoachState((prev) => !prev);
-  }
-
-  const fetchData = async () => {
+  const fetchStations = async () => {
     try {
-      const filteredTrains = trainData.map((train) => {
-        const { travel } = train;
-        let departureIndex = -1;
-        let arrivalIndex = -1;
-        travel.map((route, index) => {
-          if (route.station === departingStation) {
-            departureIndex = index;
-          }
-          if (route.station === arrivingStation) {
-            arrivalIndex = index;
-          }
-        })
-        if (departureIndex != -1 && arrivalIndex != -1 && arrivalIndex > departureIndex) {
-          let temp = true;
-          showTrainData.map((trainData) => {
-            if (trainData?.train?.train_ID === train.train_ID) {
-              temp = false;
-            }
-          })
-          if (temp) {
-            const cost = parseInt(train.travel[arrivalIndex].cost) - parseInt(train.travel[departureIndex].cost);
-            setShowTrainData([...showTrainData, { train, cost: cost }]);
-          }
-        }
-      });
-
-      if (filteredTrains.length > 0) {
-        setSelectedTrain(filteredTrains);
-      } else {
-        setSelectedTrain(null);
-      }
+      const response = await axios.get('http://localhost:8000/api/stations');
+      setStations(response.data.data);
     } catch (error) {
-      console.error("Error fetching train data:", error);
-      setSelectedTrain(null);
+      toast.error('Failed to fetch stations');
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [departingStation, arrivingStation, selectedDate]);
+  const onBuyTicket = async () => {
+    try {
+      if (!departingStation || !arrivingStation || !selectedDate) {
+        toast.error('Please fill all required fields');
+        return;
+      }
+
+      const bookingData = {
+        trainId: showTrainData[0].train?.train_ID,
+        fromStation: departingStation,
+        toStation: arrivingStation,
+        travelStartDate: selectedDate,
+        travelEndDate: selectedDate, // You might want to calculate this based on journey duration
+        passengers: [{
+          name: userData.name,
+          age: 25, // You might want to add this to user profile
+          gender: 'M', // You might want to add this to user profile
+          seatPreference: coachState ? 'Sleeper' : 'Seater'
+        }]
+      };
+
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      };
+
+      setLoading(true);
+      const response = await axios.post(
+        'http://localhost:8000/api/bookings',
+        bookingData,
+        config
+      );
+
+      if (response.data.success) {
+        toast.success('Ticket booked successfully!');
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to book ticket');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTrains = async () => {
+    try {
+      if (!departingStation || !arrivingStation || !selectedDate) return;
+
+      setLoading(true);
+      const response = await axios.get(
+        `http://localhost:8000/api/trains/search?from=${departingStation}&to=${arrivingStation}&date=${selectedDate}`
+      );
+
+      setShowTrainData(response.data.data.map(train => ({
+        train,
+        cost: train.fare
+      })));
+    } catch (error) {
+      toast.error('Failed to fetch trains');
+      setShowTrainData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleMenuItemClick = (station) => {
     if (menuType === "departure") {
@@ -155,6 +202,23 @@ const TrainBookingPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+  };
+
+  const onCoachState = (cost) => {
+    if(coachState) {
+      setFairCost(parseInt(fairCost)-parseInt(cost));
+    } else {
+      setFairCost(parseInt(fairCost)+parseInt(cost));
+    }
+    setCoachState((prev) => !prev);
+  }
+
+  const handleSearch = () => {
+    if (!departingStation || !arrivingStation || !selectedDate) {
+      toast.error('Please select departure, arrival stations and date');
+      return;
+    }
+    fetchTrains();
   };
 
   return (
@@ -195,8 +259,14 @@ const TrainBookingPage = () => {
                   open={open && menuType === "departure"}
                   onClose={handleClose}
                 >
-                  {/* Menu items remain the same */}
-                  {/* ... */}
+                  {stations.map((station) => (
+                    <MenuItem
+                      key={station._id}
+                      onClick={() => handleMenuItemClick(station.name)}
+                    >
+                      {station.name}
+                    </MenuItem>
+                  ))}
                 </StyledMenu>
               </div>
 
@@ -227,8 +297,14 @@ const TrainBookingPage = () => {
                   open={open && menuType === "arrival"}
                   onClose={handleClose}
                 >
-                  {/* Menu items remain the same */}
-                  {/* ... */}
+                  {stations.map((station) => (
+                    <MenuItem
+                      key={station._id}
+                      onClick={() => handleMenuItemClick(station.name)}
+                    >
+                      {station.name}
+                    </MenuItem>
+                  ))}
                 </StyledMenu>
               </div>
             </div>
@@ -247,32 +323,99 @@ const TrainBookingPage = () => {
             />
           </div>
 
-          {departingStation && arrivingStation && selectedDate && (
-            <div className="animate-fadeInUp">
+          <div className="flex justify-center mt-8">
+            <button
+              type="button"
+              onClick={handleSearch}
+              disabled={loading}
+              className="group px-8 py-4 text-lg font-semibold bg-yellow-400 text-gray-900 rounded-xl hover:bg-yellow-300 transform hover:scale-110 hover:shadow-lg hover:shadow-yellow-400/50 transition-all duration-300 ease-in-out flex items-center justify-center backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                'Searching...'
+              ) : (
+                <>
+                  Search Trains
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    className="h-6 w-6 ml-2 group-hover:translate-x-2 transition-transform duration-300" 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+                    />
+                  </svg>
+                </>
+              )}
+            </button>
+          </div>
+
+          {showTrainData.length > 0 && (
+            <div className="animate-fadeInUp mt-12">
               <h2 className="text-4xl font-extrabold text-white text-center mb-8">
                 Available 
                 <span className="text-yellow-400 mx-2">Trains</span>
               </h2>
               
               {showTrainData.map((train) => (
-                <div className="bg-black/50 backdrop-blur-sm border-2 border-yellow-400/30 rounded-xl p-6 mb-6 transform hover:scale-[1.02] transition-all duration-300">
-                  {/* Train details styling remains similar but with updated colors */}
-                  {/* ... */}
+                <div key={train.train.train_ID} className="bg-black/50 backdrop-blur-sm border-2 border-yellow-400/30 rounded-xl p-6 mb-6 transform hover:scale-[1.02] transition-all duration-300">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-2xl font-bold text-yellow-400">{train.train.train_name}</h3>
+                      <p className="text-white">Train No: {train.train.train_ID}</p>
+                      <p className="text-white">From: {departingStation}</p>
+                      <p className="text-white">To: {arrivingStation}</p>
+                      <p className="text-white">Date: {selectedDate}</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-yellow-400">₹{train.cost}</p>
+                      <div className="flex items-center gap-4 mt-4">
+                        <label className="text-white flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={coachState}
+                            onChange={() => onCoachState(500)}
+                            className="form-checkbox text-yellow-400"
+                          />
+                          Sleeper Class (+₹500)
+                        </label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           )}
 
-          <button
-            type="submit"
-            className="group px-6 py-3 text-base font-semibold bg-yellow-400 text-gray-900 rounded-xl hover:bg-yellow-300 transform hover:scale-110 hover:shadow-lg hover:shadow-yellow-400/50 transition-all duration-300 ease-in-out flex items-center justify-center backdrop-blur-sm mx-auto"
-            onClick={() => onBuyTicket()}
-          >
-            Book Now
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 group-hover:translate-x-3 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-          </button>
+          {loading && (
+            <div className="text-center text-white text-xl mt-8">
+              Searching for available trains...
+            </div>
+          )}
+
+          {!loading && showTrainData.length === 0 && departingStation && arrivingStation && selectedDate && (
+            <div className="text-center text-white text-xl mt-8">
+              No trains available for selected route
+            </div>
+          )}
+
+          {showTrainData.length > 0 && (
+            <button
+              type="button"
+              className="group px-6 py-3 text-base font-semibold bg-yellow-400 text-gray-900 rounded-xl hover:bg-yellow-300 transform hover:scale-110 hover:shadow-lg hover:shadow-yellow-400/50 transition-all duration-300 ease-in-out flex items-center justify-center backdrop-blur-sm mx-auto disabled:opacity-50"
+              onClick={onBuyTicket}
+              disabled={loading}
+            >
+              {loading ? 'Booking...' : 'Book Now'}
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 group-hover:translate-x-3 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </button>
+          )}
         </form>
       </div>
     </div>
