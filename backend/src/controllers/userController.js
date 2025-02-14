@@ -6,7 +6,7 @@ class UserController {
   // Register user
   async register(req, res) {
     try {
-      const { name, email, password } = req.body;
+      const { name, email, password,phone } = req.body;
 
       // Check if user already exists
       let user = await User.findOne({ email });
@@ -21,6 +21,7 @@ class UserController {
         name,
         email,
         password,
+        phone
       });
 
       const token = this.generateToken(user._id);
@@ -71,6 +72,7 @@ class UserController {
           id: user._id,
           name: user.name,
           email: user.email,
+          phone:user.phone
         },
       });
     } catch (error) {
