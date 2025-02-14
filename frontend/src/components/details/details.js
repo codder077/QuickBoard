@@ -6,25 +6,29 @@ const Details = () => {
   const { train, selectedCoach, fare } = location.state || {}; // Retrieve train, selected coach, and fare from state
 
   // Initialize state for passenger details
-  const [passengerDetails, setPassengerDetails] = useState({
-    name: '',
-    age: '',
-    location: '',
-    gender: '',
-    dob: '',
-  });
-
+  const [passengerDetails, setPassengerDetails] = useState([]);
+console.log(passengerDetails)
   // Check if train and selectedCoach are defined
   if (!train || !selectedCoach) {
     return <div className="text-red-500">Error: Train or selected coach information is missing.</div>;
   }
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e, index) => {
     const { name, value } = e.target;
-    setPassengerDetails((prevDetails) => ({
-      ...prevDetails,
-      [name]: value,
-    }));
+    setPassengerDetails((prevDetails) =>
+      prevDetails.map((passenger, i) =>
+        i === index ? { ...passenger, [name]: value } : passenger
+      )
+    );
+  };
+
+  const handleAddPassenger = () => {
+    setPassengerDetails([...passengerDetails, { name: '', age: '', location: '', gender: '', dob: '' }]);
+  };
+
+  const handleRemovePassenger = (index) => {
+    const newPassengerDetails = passengerDetails.filter((_, i) => i !== index);
+    setPassengerDetails(newPassengerDetails);
   };
 
   const handlePayment = (method) => {
@@ -43,68 +47,42 @@ const Details = () => {
       
       {/* Passenger details form */}
       <form className="mt-6">
-        <div className="mb-4">
-          <label className="block text-white">Passenger Name:</label>
-          <input 
-            type="text" 
-            name="name" 
-            value={passengerDetails.name} 
-            onChange={handleInputChange} 
-            className="w-full p-2 rounded" 
-            placeholder="Enter passenger name" 
-            required 
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-white">Age:</label>
-          <input 
-            type="number" 
-            name="age" 
-            value={passengerDetails.age} 
-            onChange={handleInputChange} 
-            className="w-full p-2 rounded" 
-            placeholder="Enter age" 
-            required 
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-white">Location:</label>
-          <input 
-            type="text" 
-            name="location" 
-            value={passengerDetails.location} 
-            onChange={handleInputChange} 
-            className="w-full p-2 rounded" 
-            placeholder="Enter location" 
-            required 
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-white">Gender:</label>
-          <select 
-            name="gender" 
-            value={passengerDetails.gender} 
-            onChange={handleInputChange} 
-            className="w-full p-2 rounded" 
-            required
-          >
-            <option value="">Select Gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        <div className="mb-4">
-          <label className="block text-white">Date of Birth:</label>
-          <input 
-            type="date" 
-            name="dob" 
-            value={passengerDetails.dob} 
-            onChange={handleInputChange} 
-            className="w-full p-2 rounded" 
-            required 
-          />
-        </div>
+        {passengerDetails.map((passenger, index) => (
+          <div key={index} className="flex items-center mb-4">
+            <input 
+              type="text" 
+              name="name" 
+              value={passenger.name} 
+              onChange={(e) => handleInputChange(e, index)} 
+              className="w-full p-2 rounded" 
+              placeholder="Enter passenger name" 
+              required 
+            />
+            <input 
+              type="number" 
+              name="age" 
+              value={passenger.age} 
+              onChange={(e) => handleInputChange(e, index)} 
+              className="w-full p-2 rounded mx-2" 
+              placeholder="Enter age" 
+              required 
+            />
+            <select 
+              name="gender" 
+              value={passenger.gender} 
+              onChange={(e) => handleInputChange(e, index)} 
+              className="w-full p-2 rounded mx-2" 
+              required
+            >
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+            <button type="button" onClick={() => handleRemovePassenger(index)} className="text-red-500">✖</button>
+          </div>
+        ))}
+        <button type="button" onClick={handleAddPassenger} className="bg-green-500 text-white py-2 px-4 rounded">Add Passenger</button>
         
         <h3 className="text-xl font-bold text-yellow-400 mt-6">Payment Options</h3>
         <div className="flex gap-4 mt-4">
