@@ -4,6 +4,13 @@ const notificationService = require("../services/notificationService");
 const Ticket = require("../models/Ticket");
 const TicketQueue = require("../models/TicketQueue");
 const Train = require("../models/train");
+const Razorpay=require("razorpay");
+const crypto=require("crypto");
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 class BookingController {
   // Create booking
@@ -16,6 +23,8 @@ class BookingController {
         travelStartDate,
         travelEndDate,
         passengers,
+        coach,
+        amount
       } = req.body;
       console.log(req.body, "wawwewew");
       // Create booking through service
@@ -27,8 +36,28 @@ class BookingController {
         travelStartDate,
         travelEndDate,
         passengers,
+        coach,
+        amount
       });
-
+      const options = {
+        amount: amount * 100,
+        currency: 'INR',
+        receipt: `receipt_${Date.now()}`,
+    };
+    razorpay.orders.create(options, async (error, payment) => {
+        if (error) {
+            console.error("Error creating order:", error);
+            return res.status(500).send({ message: "Something went wrong" });
+        }
+        // console.log("Payment:", payment);
+        order.orderId = payment.id;
+        await order.save();
+        res.status(201).json({
+            message: 'Order created successfully! Complete payment to confirm.',
+            payment,
+            order,
+        });
+    });
       // Send booking confirmation email
       await notificationService.sendBookingConfirmation(bookingResult);
 

@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-
+import {API_BASE_URL} from '../../utils/config'
 const Details = () => {
   const location = useLocation();
   const { train, selectedCoach, fare } = location.state || {}; // Retrieve train, selected coach, and fare from state
-
+  const loadRazorpayScript = async () => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => { };
+    document.body.appendChild(script);
+};
+React.useEffect(() => {
+    loadRazorpayScript();
+}, []);
   // Initialize state for passenger details
   const [passengerDetails, setPassengerDetails] = useState([]);
 console.log(passengerDetails)
@@ -21,7 +30,7 @@ console.log(passengerDetails)
       )
     );
   };
-
+   
   const handleAddPassenger = () => {
     setPassengerDetails([...passengerDetails, { name: '', age: '', location: '', gender: '', dob: '' }]);
   };
@@ -30,11 +39,67 @@ console.log(passengerDetails)
     const newPassengerDetails = passengerDetails.filter((_, i) => i !== index);
     setPassengerDetails(newPassengerDetails);
   };
+  
 
-  const handlePayment = (method) => {
-    // Handle payment logic here based on the selected method
+  const handlePayment = async (method) => {
     console.log(`Payment method selected: ${method}`);
     console.log('Passenger Details:', passengerDetails);
+    
+    if (method === 'razorpay') {
+      try {
+        // Call createBooking API
+        const response = await fetch(`${API_BASE_URL}/bookings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization':`Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            trainId: train.train._id, // Assuming train object has an _id
+            fromStation: train.fromStation, // Adjust as necessary
+            toStation: train.toStation, // Adjust as necessary
+            travelStartDate: train.departureTime, // Adjust as necessary
+            travelEndDate: train.arrivalTime, // Adjust as necessary
+            passengers: passengerDetails,
+            coach:selectedCoach,
+            amount: passengerDetails.length*fare
+          }),
+        });
+
+        const bookingResult = await response.json();
+
+        if (bookingResult.success) {
+          // Proceed with Razorpay payment
+          const options = {
+            key: 'rzp_test_S7O9aeETo3NXrl', // Your Razorpay key id
+            amount: bookingResult.data.totalFare * 100, // Amount in paise
+            currency: "INR",
+            name: "Train Booking",
+            description: "Booking for train journey",
+            order_id: bookingResult.data.orderId, // Assuming the order ID is returned
+            handler: function (response) {
+              // Handle successful payment here
+              console.log("Payment successful:", response);
+            },
+            prefill: {
+              name: passengerDetails[0]?.name || '', // Prefill with first passenger's name
+              email: '', // Add email if available
+              contact: '', // Add contact if available
+            },
+            theme: {
+              color: "#F37254",
+            },
+          };
+
+          const razorpay = new window.Razorpay(options);
+          razorpay.open();
+        } else {
+          console.error("Booking failed:", bookingResult.error);
+        }
+      } catch (error) {
+        console.error("Error during booking:", error);
+      }
+    }
   };
 
   return (
