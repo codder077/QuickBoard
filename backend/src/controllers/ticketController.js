@@ -73,12 +73,10 @@ const handleCancellation = async (req, res) => {
   try {
     const { userEmail, pnr } = req.body;
     if (!userEmail) {
-      return res
-        .status(400)
-        .json({
-          message: "Some error occurred! Please login again after logging out",
-          status: 400,
-        });
+      return res.status(400).json({
+        message: "Some error occurred! Please login again after logging out",
+        status: 400,
+      });
     }
 
     const user = await Users.findOne({ email: userEmail });
@@ -90,12 +88,10 @@ const handleCancellation = async (req, res) => {
     return res.json({ status: 200 });
   } catch (error) {
     console.log("Error occurred at the backend of onticket cancellation");
-    return res
-      .status(500)
-      .json({
-        message: "Some Error Occurred! Please try again later",
-        status: 500,
-      });
+    return res.status(500).json({
+      message: "Some Error Occurred! Please try again later",
+      status: 500,
+    });
   }
 };
 
