@@ -1,8 +1,12 @@
+const TrainTicket = require("../models/trainTicketModel");
+const Station = require("../models/Station");
 class CrowdPredictionService {
-  async predictCrowdLevel(stationId, date) {
-    const station = await Station.findById(stationId);
-    const bookings = await Ticket.find({
-      $or: [{ departureStation: stationId }, { destinationStation: stationId }],
+  async predictCrowdLevel(station, date) {
+    const bookings = await TrainTicket.find({
+      $or: [
+        { departureStation: station._id },
+        { destinationStation: station._id },
+      ],
       departuredate: {
         $gte: new Date(date).setHours(0, 0, 0),
         $lt: new Date(date).setHours(23, 59, 59),
@@ -25,8 +29,11 @@ class CrowdPredictionService {
     const predictedLevel =
       baseLevel * 0.5 + historicalFactor * 0.3 + eventFactor * 0.2;
 
+    const finalLevel =
+      predictedLevel > 100 ? 100 : predictedLevel < 0 ? 0 : predictedLevel;
+
     return {
-      level: Math.min(100, Math.max(0, predictedLevel)),
+      level: finalLevel,
       confidence: this.calculateConfidence(bookings.length, historicalFactor),
     };
   }
@@ -35,40 +42,40 @@ class CrowdPredictionService {
     // Base calculation on number of bookings
     const averageBookingsPerDay = 100; // This could be configured based on station capacity
     const crowdLevel = (bookings.length / averageBookingsPerDay) * 100;
-    
+
     // Ensure crowd level is between 0-100
-    return Math.min(100, Math.max(0, crowdLevel));
+    return crowdLevel > 100 ? 100 : crowdLevel < 0 ? 0 : crowdLevel;
   }
 
   async analyzeHistoricalPatterns(station, date) {
-    const dayOfWeek = new Date(date).getDay();
-    const hour = new Date(date).getHours();
+    const targetDate = new Date(date);
+    const dayOfWeek = targetDate.getDay();
+    const hour = targetDate.getHours();
 
     // Get historical crowd levels for same day and time
     const historicalData = await Station.aggregate([
       {
         $match: {
           _id: station._id,
-          'crowdLevel.predictions.date': {
-            $lt: new Date(date)
-          }
-        }
+          "crowdLevel.predictions.date": { $lt: targetDate },
+        },
       },
       {
-        $unwind: '$crowdLevel.predictions'
+        $unwind: "$crowdLevel.predictions",
+      },
+      {
+        $project: {
+          prediction: "$crowdLevel.predictions",
+          dayOfWeek: { $dayOfWeek: "$crowdLevel.predictions.date" },
+          hour: { $hour: "$crowdLevel.predictions.date" },
+        },
       },
       {
         $match: {
-          'crowdLevel.predictions.date': {
-            $expr: {
-              $and: [
-                { $eq: [{ $dayOfWeek: '$crowdLevel.predictions.date' }, dayOfWeek] },
-                { $eq: [{ $hour: '$crowdLevel.predictions.date' }, hour] }
-              ]
-            }
-          }
-        }
-      }
+          dayOfWeek: dayOfWeek,
+          hour: hour,
+        },
+      },
     ]);
 
     if (historicalData.length === 0) {
@@ -76,24 +83,25 @@ class CrowdPredictionService {
     }
 
     // Calculate average historical crowd level
-    const avgLevel = historicalData.reduce((sum, record) => 
-      sum + record.crowdLevel.predictions.level, 0) / historicalData.length;
-    
+    const avgLevel =
+      historicalData.reduce((sum, record) => sum + record.prediction.level, 0) /
+      historicalData.length;
+
     return avgLevel;
   }
 
   async checkSpecialEvents(date) {
     // List of major holidays/events (could be moved to a database)
     const specialDates = {
-      '12-25': 90, // Christmas
-      '12-31': 85, // New Year's Eve
-      '01-01': 80, // New Year's Day
-      '07-04': 75, // Independence Day
+      "12-25": 90, // Christmas
+      "12-31": 85, // New Year's Eve
+      "01-01": 80, // New Year's Day
+      "07-04": 75, // Independence Day
     };
 
-    const monthDay = new Date(date).toLocaleString('en-US', {
-      month: '2-digit',
-      day: '2-digit'
+    const monthDay = new Date(date).toLocaleString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
     });
 
     // Check if date is a special event
@@ -107,13 +115,18 @@ class CrowdPredictionService {
 
   calculateConfidence(bookingsCount, historicalFactor) {
     // More bookings and stronger historical patterns increase confidence
-    const bookingConfidence = Math.min(bookingsCount / 100, 1) * 0.6;
+    const bookingConfidence = bookingsCount > 100 ? 1 : bookingsCount / 100;
     const historicalConfidence = (historicalFactor / 100) * 0.4;
-    
-    const totalConfidence = bookingConfidence + historicalConfidence;
-    
+
+    const totalConfidence = bookingConfidence * 0.6 + historicalConfidence;
+
     // Return confidence as percentage between 0-100
-    return Math.min(100, Math.max(0, totalConfidence * 100));
+    const finalConfidence = totalConfidence * 100;
+    return finalConfidence > 100
+      ? 100
+      : finalConfidence < 0
+      ? 0
+      : finalConfidence;
   }
 }
 

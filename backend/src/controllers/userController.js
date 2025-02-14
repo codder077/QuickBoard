@@ -2,11 +2,17 @@ const User = require("../models/userModel");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: "30d",
+  });
+};
+
 class UserController {
   // Register user
   async register(req, res) {
     try {
-      const { name, email, password,phone } = req.body;
+      const { name, email, password, phone } = req.body;
 
       // Check if user already exists
       let user = await User.findOne({ email });
@@ -24,7 +30,7 @@ class UserController {
         phone
       });
 
-      const token = this.generateToken(user._id);
+      const token = generateToken(user._id);
 
       res.status(201).json({
         success: true,
@@ -63,7 +69,7 @@ class UserController {
         });
       }
 
-      const token = this.generateToken(user._id);
+      const token = generateToken(user._id);
 
       res.status(200).json({
         success: true,
@@ -72,7 +78,7 @@ class UserController {
           id: user._id,
           name: user.name,
           email: user.email,
-          phone:user.phone
+          phone: user.phone
         },
       });
     } catch (error) {
@@ -125,19 +131,12 @@ class UserController {
       user.password = req.body.newPassword;
       await user.save();
 
-      const token = this.generateToken(user._id);
+      const token = generateToken(user._id);
 
       res.status(200).json({ success: true, token });
     } catch (error) {
       res.status(400).json({ success: false, error: error.message });
     }
-  }
-
-  // Generate JWT Token
-  generateToken(id) {
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
-      expiresIn: "30d",
-    });
   }
 }
 

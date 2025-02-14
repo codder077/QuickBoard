@@ -42,6 +42,24 @@ class StationController {
     }
   }
 
+  // Create multiple stations
+  async createManyStations(req, res) {
+    try {
+      const stations = req.body;
+      if (!Array.isArray(stations)) {
+        return res.status(400).json({
+          success: false,
+          error: "Request body must be an array of stations"
+        });
+      }
+
+      const createdStations = await Station.insertMany(stations);
+      res.status(201).json({ success: true, data: createdStations });
+    } catch (error) {
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }
+
   // Update station
   async updateStation(req, res) {
     try {
@@ -83,7 +101,7 @@ class StationController {
   async getNearbyStations(req, res) {
     try {
       const { id } = req.params;
-      const { radius = 50 } = req.query; // radius in kilometers
+      const { radius } = req.query; // radius in kilometers
 
       const station = await Station.findById(id);
       if (!station) {
@@ -137,13 +155,15 @@ class StationController {
 
       // Get current crowd level
       const station = await Station.findById(stationId);
+      if (!station) {
+        return res.status(404).json({ success: false, error: "Station not found" });
+      }
 
       // Get prediction for future date
       const prediction = await crowdPredictionService.predictCrowdLevel(
-        stationId,
+        station,
         date
       );
-
       // Update station predictions
       await Station.findByIdAndUpdate(stationId, {
         $push: {
@@ -155,13 +175,13 @@ class StationController {
         },
       });
 
+      // Get alternative stations
+      const alternativeStations = await this.suggestAlternativeStations(station, prediction.level);
+      
       return res.status(200).json({
         currentLevel: station.crowdLevel.current,
         prediction: prediction,
-        alternativeStations: await this.suggestAlternativeStations(
-          stationId,
-          prediction.level
-        ),
+        alternativeStations: alternativeStations,
       });
     } catch (error) {
       console.error("Error in getCrowdLevel:", error);
@@ -169,10 +189,9 @@ class StationController {
     }
   }
 
-  async suggestAlternativeStations(stationId, crowdLevel) {
+  async suggestAlternativeStations(station, crowdLevel) {
     if (crowdLevel < 70) return []; // Only suggest alternatives for high crowd levels
 
-    const station = await Station.findById(stationId);
     return Station.find({
       location: {
         $near: {
@@ -181,7 +200,7 @@ class StationController {
         },
       },
       "crowdLevel.current": { $lt: crowdLevel - 20 },
-    }).limit(3);
+    });
   }
 }
 
