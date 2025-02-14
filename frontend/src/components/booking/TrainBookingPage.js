@@ -33,7 +33,7 @@ const StyledMenu = styled((props) => (
     boxShadow:
       "0 4px 6px -1px rgba(250, 204, 21, 0.1), 0 2px 4px -1px rgba(250, 204, 21, 0.06)",
     "& .MuiMenu-list": {
-      padding: "8px",
+      padding: "4px",
       maxHeight: "300px",
       overflowY: "auto",
       "&::-webkit-scrollbar": {
@@ -62,11 +62,6 @@ const StyledMenu = styled((props) => (
         backgroundColor: "rgba(250, 204, 21, 0.2)",
         color: "#facc15",
       },
-      "& .MuiSvgIcon-root": {
-        fontSize: 18,
-        color: theme.palette.text.secondary,
-        marginRight: theme.spacing(1.5),
-      },
       "&:active": {
         backgroundColor: "rgba(250, 204, 21, 0.3)",
       },
@@ -83,8 +78,8 @@ const StyledMenu = styled((props) => (
 
 const TrainBookingPage = () => {
   const navigate = useNavigate();
-  const [departingStation, setDepartingStation] = useState("");
-  const [arrivingStation, setArrivingStation] = useState("");
+  const [departingStation, setDepartingStation] = useState({ id: "", name: "" });
+  const [arrivingStation, setArrivingStation] = useState({ id: "", name: "" });
   const [selectedDate, setSelectedDate] = useState("");
   const [showTrainData, setShowTrainData] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -93,6 +88,8 @@ const TrainBookingPage = () => {
   const [fairCost, setFairCost] = useState(0);
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [departureSearchQuery, setDepartureSearchQuery] = useState("");
+  const [arrivalSearchQuery, setArrivalSearchQuery] = useState("");
 
   const open = Boolean(anchorEl);
   const token = localStorage.getItem('token');
@@ -117,15 +114,15 @@ const TrainBookingPage = () => {
 
   const onBuyTicket = async () => {
     try {
-      if (!departingStation || !arrivingStation || !selectedDate) {
+      if (!departingStation.id || !arrivingStation.id || !selectedDate) {
         toast.error('Please fill all required fields');
         return;
       }
 
       const bookingData = {
         trainId: showTrainData[0].train?.train_ID,
-        fromStation: departingStation,
-        toStation: arrivingStation,
+        fromStation: departingStation.id,
+        toStation: arrivingStation.id,
         travelStartDate: selectedDate,
         travelEndDate: selectedDate, // You might want to calculate this based on journey duration
         passengers: [{
@@ -162,30 +159,76 @@ const TrainBookingPage = () => {
 
   const fetchTrains = async () => {
     try {
-      if (!departingStation || !arrivingStation || !selectedDate) return;
+      if (!departingStation.id || !arrivingStation.id || !selectedDate) return;
 
       setLoading(true);
+      console.log(departingStation.id, arrivingStation.id, selectedDate); 
       const response = await axios.get(
-        `http://localhost:8000/api/trains/search?from=${departingStation}&to=${arrivingStation}&date=${selectedDate}`
+        `http://localhost:8000/api/trains/search`,
+        {
+          params: {
+            startStation: departingStation.id,
+            endStation: arrivingStation.id,
+            date: selectedDate
+          }
+        }
       );
 
-      setShowTrainData(response.data.data.map(train => ({
-        train,
-        cost: train.fare
-      })));
+      if (response.data.success) {
+        // Combine direct and alternative trains
+        const allTrains = [
+          ...(response.data.data.directTrains || []),
+          ...(response.data.data.alternativeTrains || [])
+        ];
+
+        // Remove duplicates based on trainNo
+        const uniqueTrains = allTrains.reduce((acc, train) => {
+          if (!acc.some(t => t.trainNo === train.trainNo)) {
+            acc.push(train);
+          }
+          return acc;
+        }, []);
+        console.log(uniqueTrains);
+
+        // Filter out invalid trains before mapping
+        const validTrains = uniqueTrains.filter(train => train.trainNo && train.trainName);
+
+        setShowTrainData(validTrains.map(train => ({
+          train: {
+            train_ID: train.trainNo,
+            train_name: train.trainName,
+            departureTime: train.departureTime,
+            arrivalTime: train.arrivalTime,
+            route: train.route
+          },
+          cost: train.fare || calculateFare(train)
+        })));
+      }
     } catch (error) {
-      toast.error('Failed to fetch trains');
+      toast.error(error.response?.data?.error || 'Failed to fetch trains');
       setShowTrainData([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Helper function to calculate fare (implement based on your requirements)
+  const calculateFare = (train) => {
+    // Basic implementation - you should modify this based on your needs
+    return 500; // Base fare
+  };
+
   const handleMenuItemClick = (station) => {
     if (menuType === "departure") {
-      setDepartingStation(station);
+      setDepartingStation({
+        id: station._id,
+        name: `${station.name} (${station.code})`
+      });
     } else if (menuType === "arrival") {
-      setArrivingStation(station);
+      setArrivingStation({
+        id: station._id,
+        name: `${station.name} (${station.code})`
+      });
     }
     setAnchorEl(null);
   };
@@ -198,6 +241,8 @@ const TrainBookingPage = () => {
   const handleClose = () => {
     setAnchorEl(null);
     setMenuType("");
+    setDepartureSearchQuery("");
+    setArrivalSearchQuery("");
   };
 
   const handleSubmit = (e) => {
@@ -214,11 +259,18 @@ const TrainBookingPage = () => {
   }
 
   const handleSearch = () => {
-    if (!departingStation || !arrivingStation || !selectedDate) {
+    if (!departingStation.id || !arrivingStation.id || !selectedDate) {
       toast.error('Please select departure, arrival stations and date');
       return;
     }
     fetchTrains();
+  };
+
+  const getFilteredStations = (searchQuery) => {
+    return stations.filter(station => 
+      station.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      station.code.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   };
 
   return (
@@ -251,7 +303,7 @@ const TrainBookingPage = () => {
                   onClick={(e) => handleClick(e, "departure")}
                   endIcon={<KeyboardArrowDownIcon />}
                 >
-                  {departingStation || "Select Station"}
+                  {departingStation.name || "Select Station"}
                 </Button>
                 <StyledMenu
                   id="departure-station-menu"
@@ -259,14 +311,26 @@ const TrainBookingPage = () => {
                   open={open && menuType === "departure"}
                   onClose={handleClose}
                 >
-                  {stations.map((station) => (
-                    <MenuItem
-                      key={station._id}
-                      onClick={() => handleMenuItemClick(station.name)}
-                    >
-                      {station.name}
-                    </MenuItem>
-                  ))}
+                  <div className="px-2 py-2 sticky top-0 bg-black/90 border-b border-yellow-400/30 z-50">
+                    <input
+                      type="text"
+                      placeholder="Search stations..."
+                      value={departureSearchQuery}
+                      onChange={(e) => setDepartureSearchQuery(e.target.value)}
+                      className="w-full px-3 py-2 bg-transparent border-2 border-yellow-400/30 rounded-lg text-white focus:outline-none focus:border-yellow-400 text-sm"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  <div className="mt-2">
+                    {getFilteredStations(departureSearchQuery).map((station) => (
+                      <MenuItem
+                        key={station._id}
+                        onClick={() => handleMenuItemClick(station)}
+                      >
+                        {station.name} ({station.code})
+                      </MenuItem>
+                    ))}
+                  </div>
                 </StyledMenu>
               </div>
 
@@ -289,7 +353,7 @@ const TrainBookingPage = () => {
                   onClick={(e) => handleClick(e, "arrival")}
                   endIcon={<KeyboardArrowDownIcon />}
                 >
-                  {arrivingStation || "Select Station"}
+                  {arrivingStation.name || "Select Station"}
                 </Button>
                 <StyledMenu
                   id="arrival-station-menu"
@@ -297,14 +361,26 @@ const TrainBookingPage = () => {
                   open={open && menuType === "arrival"}
                   onClose={handleClose}
                 >
-                  {stations.map((station) => (
-                    <MenuItem
-                      key={station._id}
-                      onClick={() => handleMenuItemClick(station.name)}
-                    >
-                      {station.name}
-                    </MenuItem>
-                  ))}
+                  <div className="px-2 py-2 sticky top-0 bg-black/90 border-b border-yellow-400/30 z-50">
+                    <input
+                      type="text"
+                      placeholder="Search stations..."
+                      value={arrivalSearchQuery}
+                      onChange={(e) => setArrivalSearchQuery(e.target.value)}
+                      className="w-full px-3 py-2 bg-transparent border-2 border-yellow-400/30 rounded-lg text-white focus:outline-none focus:border-yellow-400 text-sm"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  <div className="mt-2">
+                    {getFilteredStations(arrivalSearchQuery).map((station) => (
+                      <MenuItem
+                        key={station._id}
+                        onClick={() => handleMenuItemClick(station)}
+                      >
+                        {station.name} ({station.code})
+                      </MenuItem>
+                    ))}
+                  </div>
                 </StyledMenu>
               </div>
             </div>
@@ -361,14 +437,14 @@ const TrainBookingPage = () => {
                 <span className="text-yellow-400 mx-2">Trains</span>
               </h2>
               
-              {showTrainData.map((train) => (
+              {showTrainData.length>0 && showTrainData.map((train) => (
                 <div key={train.train.train_ID} className="bg-black/50 backdrop-blur-sm border-2 border-yellow-400/30 rounded-xl p-6 mb-6 transform hover:scale-[1.02] transition-all duration-300">
                   <div className="flex justify-between items-center">
                     <div>
                       <h3 className="text-2xl font-bold text-yellow-400">{train.train.train_name}</h3>
                       <p className="text-white">Train No: {train.train.train_ID}</p>
-                      <p className="text-white">From: {departingStation}</p>
-                      <p className="text-white">To: {arrivingStation}</p>
+                      <p className="text-white">From: {departingStation.name}</p>
+                      <p className="text-white">To: {arrivingStation.name}</p>
                       <p className="text-white">Date: {selectedDate}</p>
                     </div>
                     <div>
@@ -397,7 +473,7 @@ const TrainBookingPage = () => {
             </div>
           )}
 
-          {!loading && showTrainData.length === 0 && departingStation && arrivingStation && selectedDate && (
+          {!loading && showTrainData.length === 0 && departingStation.id && arrivingStation.id && selectedDate && (
             <div className="text-center text-white text-xl mt-8">
               No trains available for selected route
             </div>
