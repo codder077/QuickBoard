@@ -4,7 +4,6 @@ const trainSchema = mongoose.Schema({
     trainNo: {
         type: Number,
         required: true,
-        unique: true
     },
     trainName: {
         type: String,

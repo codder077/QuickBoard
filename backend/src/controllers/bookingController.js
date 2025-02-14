@@ -8,6 +8,10 @@ class BookingController {
     try {
       const bookingResult = await bookingService.bookTicket(req.user, req.body);
 
+      // Send booking confirmation email
+    //   console.log(bookingResult, "waw");
+      await notificationService.sendBookingConfirmation(bookingResult);
+
       res.status(201).json({ success: true, data: bookingResult });
     } catch (error) {
       res.status(400).json({ success: false, error: error.message });
@@ -59,7 +63,6 @@ class BookingController {
   async cancelBooking(req, res) {
     try {
       const booking = await Booking.findById(req.params.id);
-
       if (!booking) {
         return res
           .status(404)
@@ -67,6 +70,7 @@ class BookingController {
       }
 
       // Check if the booking belongs to the user
+      // console.log(booking, "WAW");
       if (booking.user.toString() !== req.user.id) {
         return res
           .status(403)
@@ -80,6 +84,7 @@ class BookingController {
       await bookingService.processRefund(booking);
 
       // Send cancellation notification
+      console.log("waw");
       await notificationService.sendCancellationNotification(booking);
 
       res.status(200).json({ success: true, data: booking });
@@ -113,7 +118,7 @@ class BookingController {
       await booking.save();
 
       // Send transfer notifications
-      await notificationService.sendTransferNotifications(booking, newUserId);
+    //   await notificationService.sendTransferNotifications(booking, newUserId);
 
       res.status(200).json({ success: true, data: booking });
     } catch (error) {

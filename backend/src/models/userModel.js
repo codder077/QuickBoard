@@ -12,7 +12,6 @@ const userSchema = mongoose.Schema(
             required: true,
             unique: true
         },
-        trainTickets: [TrainTicket.schema]
     }
 );
 

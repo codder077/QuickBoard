@@ -8,7 +8,7 @@ const trainTicketSchema=mongoose.Schema({
     },
     trainNo:{
         type:Number,
-        required:true
+        // required:true
     },
     userEmail:{
         type:String,

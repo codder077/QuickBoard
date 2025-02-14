@@ -22,7 +22,8 @@ class UserController {
           error: "User already exists",
         });
       }
-
+      
+      console.log('waww');
       user = await User.create({
         name,
         email,
@@ -31,7 +32,6 @@ class UserController {
       });
 
       const token = generateToken(user._id);
-
       res.status(201).json({
         success: true,
         token,
