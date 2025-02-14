@@ -6,9 +6,33 @@ const notificationService = require("../services/notificationService");
 const Train = require("../models/train");
 
 class BookingService {
+  async checkSeatAvailability(trainId, coachType) {
+    // Find the train and get coach details
+    const train = await Train.findById(trainId);
+    if (!train) {
+      throw new Error("Train not found");
+    }
+
+    const coach = train.coaches.find(c => c.type === coachType);
+    if (!coach) {
+      throw new Error(`Coach type ${coachType} not found`);
+    }
+
+    // Get count of confirmed tickets for this train and coach
+    const bookedTickets = await Ticket.countDocuments({
+      train: trainId,
+      coach: coachType,
+      status: "CONFIRMED"
+    });
+
+    // Calculate available seats
+    const availableSeats = coach.totalSeats - bookedTickets;
+    return availableSeats;
+  }
+
   async bookTicket(user, bookingData) {
     const { trainId, coach, passengers } = bookingData;
-
+    console.log(trainId, coach, passengers, "wawwewew");
     // Check seat availability
     const availableSeats = await this.checkSeatAvailability(trainId, coach);
 

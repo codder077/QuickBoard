@@ -17,8 +17,9 @@ class BookingController {
         travelEndDate,
         passengers,
       } = req.body;
-
+      console.log(req.body, "wawwewew");
       // Create booking through service
+      console.log(trainId, fromStation, toStation, travelStartDate, travelEndDate, passengers, "wawwewew");
       const bookingResult = await bookingService.bookTicket(req.user, {
         trainId,
         fromStation,
