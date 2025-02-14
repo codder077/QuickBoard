@@ -83,8 +83,8 @@ const StyledMenu = styled((props) => (
 
 const TrainBookingPage = () => {
   const navigate = useNavigate();
-  const [departingStation, setDepartingStation] = useState("");
-  const [arrivingStation, setArrivingStation] = useState("");
+  const [departingStation, setDepartingStation] = useState({ id: "", name: "" });
+  const [arrivingStation, setArrivingStation] = useState({ id: "", name: "" });
   const [selectedDate, setSelectedDate] = useState("");
   const [showTrainData, setShowTrainData] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -117,15 +117,15 @@ const TrainBookingPage = () => {
 
   const onBuyTicket = async () => {
     try {
-      if (!departingStation || !arrivingStation || !selectedDate) {
+      if (!departingStation.id || !arrivingStation.id || !selectedDate) {
         toast.error('Please fill all required fields');
         return;
       }
 
       const bookingData = {
         trainId: showTrainData[0].train?.train_ID,
-        fromStation: departingStation,
-        toStation: arrivingStation,
+        fromStation: departingStation.id,
+        toStation: arrivingStation.id,
         travelStartDate: selectedDate,
         travelEndDate: selectedDate, // You might want to calculate this based on journey duration
         passengers: [{
@@ -162,30 +162,63 @@ const TrainBookingPage = () => {
 
   const fetchTrains = async () => {
     try {
-      if (!departingStation || !arrivingStation || !selectedDate) return;
+      if (!departingStation.id || !arrivingStation.id || !selectedDate) return;
 
       setLoading(true);
+      console.log(departingStation.id, arrivingStation.id, selectedDate); 
       const response = await axios.get(
-        `http://localhost:8000/api/trains/search?from=${departingStation}&to=${arrivingStation}&date=${selectedDate}`
+        `http://localhost:8000/api/trains/search`,
+        {
+          params: {
+            startStation: departingStation.id,
+            endStation: arrivingStation.id,
+            date: selectedDate
+          }
+        }
       );
 
-      setShowTrainData(response.data.data.map(train => ({
-        train,
-        cost: train.fare
-      })));
+      if (response.data.success) {
+        const allTrains = [
+          ...(response.data.data.directTrains || []),
+          ...(response.data.data.alternativeTrains || [])
+        ];
+
+        setShowTrainData(allTrains.map(train => ({
+          train: {
+            train_ID: train.trainNo,
+            train_name: train.trainName,
+            departureTime: train.departureTime,
+            arrivalTime: train.arrivalTime,
+            route: train.route
+          },
+          cost: train.fare || calculateFare(train)
+        })));
+      }
     } catch (error) {
-      toast.error('Failed to fetch trains');
+      toast.error(error.response?.data?.error || 'Failed to fetch trains');
       setShowTrainData([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Helper function to calculate fare (implement based on your requirements)
+  const calculateFare = (train) => {
+    // Basic implementation - you should modify this based on your needs
+    return 500; // Base fare
+  };
+
   const handleMenuItemClick = (station) => {
     if (menuType === "departure") {
-      setDepartingStation(station);
+      setDepartingStation({
+        id: station._id,
+        name: `${station.name} (${station.code})`
+      });
     } else if (menuType === "arrival") {
-      setArrivingStation(station);
+      setArrivingStation({
+        id: station._id,
+        name: `${station.name} (${station.code})`
+      });
     }
     setAnchorEl(null);
   };
@@ -214,7 +247,7 @@ const TrainBookingPage = () => {
   }
 
   const handleSearch = () => {
-    if (!departingStation || !arrivingStation || !selectedDate) {
+    if (!departingStation.id || !arrivingStation.id || !selectedDate) {
       toast.error('Please select departure, arrival stations and date');
       return;
     }
@@ -251,7 +284,7 @@ const TrainBookingPage = () => {
                   onClick={(e) => handleClick(e, "departure")}
                   endIcon={<KeyboardArrowDownIcon />}
                 >
-                  {departingStation || "Select Station"}
+                  {departingStation.name || "Select Station"}
                 </Button>
                 <StyledMenu
                   id="departure-station-menu"
@@ -262,7 +295,7 @@ const TrainBookingPage = () => {
                   {stations.map((station) => (
                     <MenuItem
                       key={station._id}
-                      onClick={() => handleMenuItemClick(station.name)}
+                      onClick={() => handleMenuItemClick(station)}
                     >
                       {station.name}
                     </MenuItem>
@@ -289,7 +322,7 @@ const TrainBookingPage = () => {
                   onClick={(e) => handleClick(e, "arrival")}
                   endIcon={<KeyboardArrowDownIcon />}
                 >
-                  {arrivingStation || "Select Station"}
+                  {arrivingStation.name || "Select Station"}
                 </Button>
                 <StyledMenu
                   id="arrival-station-menu"
@@ -300,7 +333,7 @@ const TrainBookingPage = () => {
                   {stations.map((station) => (
                     <MenuItem
                       key={station._id}
-                      onClick={() => handleMenuItemClick(station.name)}
+                      onClick={() => handleMenuItemClick(station)}
                     >
                       {station.name}
                     </MenuItem>
@@ -367,8 +400,8 @@ const TrainBookingPage = () => {
                     <div>
                       <h3 className="text-2xl font-bold text-yellow-400">{train.train.train_name}</h3>
                       <p className="text-white">Train No: {train.train.train_ID}</p>
-                      <p className="text-white">From: {departingStation}</p>
-                      <p className="text-white">To: {arrivingStation}</p>
+                      <p className="text-white">From: {departingStation.name}</p>
+                      <p className="text-white">To: {arrivingStation.name}</p>
                       <p className="text-white">Date: {selectedDate}</p>
                     </div>
                     <div>
@@ -397,7 +430,7 @@ const TrainBookingPage = () => {
             </div>
           )}
 
-          {!loading && showTrainData.length === 0 && departingStation && arrivingStation && selectedDate && (
+          {!loading && showTrainData.length === 0 && departingStation.id && arrivingStation.id && selectedDate && (
             <div className="text-center text-white text-xl mt-8">
               No trains available for selected route
             </div>
