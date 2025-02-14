@@ -10,5 +10,6 @@ router.put("/:id", protect, trainController.updateTrain);
 router.delete("/:id", protect, trainController.deleteTrain);
 router.put("/:id/location", protect, trainController.updateTrainLocation);
 router.get("/:id/schedule", trainController.getTrainSchedule);
+router.get("/search", trainController.findTrainsBetweenStations);
 
 module.exports = router;
