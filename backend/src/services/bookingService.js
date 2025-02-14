@@ -1,5 +1,6 @@
 const trainSchema = require("../models/train");
 const Booking = require("../models/Booking");
+const Ticket = require("../models/Ticket");
 
 class BookingService {
   async bookTicket(user, bookingData) {
@@ -8,39 +9,110 @@ class BookingService {
         trainId,
         fromStation,
         toStation,
-        travelDate,
+        travelStartDate,
+        travelEndDate,
         passengers,
-        coachType,
       } = bookingData;
 
-      // Check seat availability
+      // Check train availability
       const train = await trainSchema.findById(trainId);
       if (!train) {
         throw new Error("Train not found");
       }
 
-      // Calculate fare
-      console.log(coachType);
-      const fare = this.calculateFare(train, coachType, passengers.length);
+      // Calculate total fare for all passengers
+      let totalFare = 0;
+      const ticketPromises = passengers.map(async (passenger) => {
+        const { name, age, gender, coachType } = passenger;
+
+        // Calculate fare for this passenger
+        const fare = this.calculateFare(train, coachType, 1);
+        totalFare += fare;
+
+        // Create ticket
+        const ticket = new Ticket({
+          train: trainId,
+          fromStation,
+          toStation,
+          travelStartDate,
+          travelEndDate,
+          passenger: {
+            name,
+            age,
+            gender,
+          },
+          coach: coachType,
+          seatNumber: await this.assignSeat(train, coachType),
+          fare,
+          status: "CONFIRMED",
+        });
+
+        return ticket.save();
+      });
+
+      // Wait for all tickets to be created
+      const savedTickets = await Promise.all(ticketPromises);
 
       // Create new booking
       const booking = new Booking({
         user: user.id,
-        train: trainId,
-        fromStation,
-        toStation,
-        travelDate,
-        passengers,
-        coachType,
-        fare,
-        seatNumbers: await this.assignSeats(train, coachType),
+        tickets: savedTickets.map((ticket) => ticket._id),
+        totalFare,
+        paymentStatus: "PENDING",
       });
 
-      await booking.save();
+      // Update tickets with booking reference
+      const ticketUpdatePromises = savedTickets.map((ticket) => {
+        ticket.booking = booking._id;
+        return ticket.save();
+      });
+
+      await Promise.all([booking.save(), ...ticketUpdatePromises]);
       return booking;
     } catch (error) {
       throw new Error(`Booking failed: ${error.message}`);
     }
+  }
+
+  calculateFare(train, coachType, passengerCount) {
+    // Find the coach details from train
+    const coach = train.coaches.find((c) => c.type === coachType);
+    if (!coach) {
+      throw new Error(`Coach type ${coachType} not found`);
+    }
+
+    // Calculate base fare per passenger
+    const baseFare = coach.fare;
+    return baseFare * passengerCount;
+  }
+
+  async assignSeat(train, coachType) {
+    // Find the coach details
+    const coach = train.coaches.find((c) => c.type === coachType);
+    if (!coach) {
+      throw new Error(`Coach type ${coachType} not found`);
+    }
+
+    // Get all existing tickets for this train and coach type
+    const existingTickets = await Ticket.find({
+      train: train._id,
+      coachType: coachType,
+      status: "CONFIRMED",
+    });
+
+    // Get all occupied seat numbers
+    const occupiedSeats = existingTickets.map((ticket) => ticket.seatNumber);
+
+    // Find first available seat
+    let seatNumber = 1;
+    while (occupiedSeats.includes(`${coachType}-${seatNumber}`)) {
+      seatNumber++;
+      if (seatNumber > coach.totalSeats) {
+        throw new Error("No seats available in this coach");
+      }
+    }
+
+    return `${coachType}-${seatNumber}`;
   }
 
   async processRefund(booking) {
@@ -64,57 +136,9 @@ class BookingService {
     }
   }
 
-  calculateFare(train, coachType, passengerCount) {
-    // Find the coach details from train
-    console.log(train);
-    const coach = train.coaches.find(c => c.type === coachType);
-    if (!coach) {
-      throw new Error(`Coach type ${coachType} not found`);
-    }
-
-    // Calculate base fare per passenger
-    const baseFare = coach.fare;
-
-    // Calculate total fare for all passengers
-    const totalFare = baseFare * passengerCount;
-
-    return totalFare;
-  }
-
-  async assignSeats(train, coachType) {
-    // Find the coach details
-    const coach = train.coaches.find(c => c.type === coachType);
-    if (!coach) {
-      throw new Error(`Coach type ${coachType} not found`);
-    }
-
-    // Get all existing bookings for this train and coach type
-    const existingBookings = await Booking.find({
-      train: train._id,
-      coachType: coachType,
-      status: "CONFIRMED"
-    });
-
-    // Get all occupied seat numbers
-    const occupiedSeats = existingBookings.reduce((seats, booking) => {
-      return [...seats, ...booking.seatNumbers];
-    }, []);
-
-    // Find first available seat
-    let seatNumber = 1;
-    while (occupiedSeats.includes(`${coachType}-${seatNumber}`)) {
-      seatNumber++;
-      if (seatNumber > coach.totalSeats) {
-        throw new Error("No seats available in this coach");
-      }
-    }
-
-    return [`${coachType}-${seatNumber}`];
-  }
-
   calculateRefundAmount(booking) {
     const currentTime = new Date();
-    const travelTime = new Date(booking.travelDate);
+    const travelTime = new Date(booking.travelStartDate);
     const hoursToTravel = (travelTime - currentTime) / (1000 * 60 * 60);
 
     // Refund policy:
@@ -122,13 +146,52 @@ class BookingService {
     // 24-48 hours: 75% refund
     // 12-24 hours: 50% refund
     // < 12 hours: no refund
-    
+
     if (hoursToTravel >= 48) {
-      return booking.fare;
+      return booking.totalFare;
     } else if (hoursToTravel >= 24) {
-      return booking.fare * 0.75;
+      return booking.totalFare * 0.75;
     } else if (hoursToTravel >= 12) {
-      return booking.fare * 0.50;
+      return booking.totalFare * 0.5;
+    } else {
+      return 0;
+    }
+  }
+
+  async processTicketRefund(ticket) {
+    try {
+      // Only process refund for cancelled tickets
+      if (ticket.status !== "CANCELLED") {
+        throw new Error("Refund can only be processed for cancelled tickets");
+      }
+
+      // Calculate refund amount based on cancellation time
+      const refundAmount = this.calculateTicketRefundAmount(ticket);
+
+      // Process refund logic here (payment gateway integration would go here)
+
+      return { success: true, refundAmount };
+    } catch (error) {
+      throw new Error(`Refund processing failed: ${error.message}`);
+    }
+  }
+
+  calculateTicketRefundAmount(ticket) {
+    const currentTime = new Date();
+    const travelTime = new Date(ticket.travelStartDate);
+    const hoursToTravel = (travelTime - currentTime) / (1000 * 60 * 60);
+
+    // Refund policy:
+    // > 48 hours: 100% refund
+    // 24-48 hours: 75% refund
+    // 12-24 hours: 50% refund
+    // < 12 hours: no refund
+    if (hoursToTravel >= 48) {
+      return ticket.fare;
+    } else if (hoursToTravel >= 24) {
+      return ticket.fare * 0.75;
+    } else if (hoursToTravel >= 12) {
+      return ticket.fare * 0.5;
     } else {
       return 0;
     }
