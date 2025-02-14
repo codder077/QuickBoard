@@ -145,14 +145,14 @@ class TrainController {
   // Find trains between stations
   async findTrainsBetweenStations(req, res) {
     try {
+        // console.log("waw");
       const { startStation, endStation } = req.query;
-
       // Validate input stations
       const [start, end] = await Promise.all([
         Station.findById(startStation),
         Station.findById(endStation),
       ]);
-
+    //   console.log(start, end);
       if (!start || !end) {
         return res.status(404).json({
           success: false,
@@ -165,7 +165,7 @@ class TrainController {
         "route.station": { $all: [startStation, endStation] },
         status: "Active",
       }).populate("route.station");
-
+    //   console.log(directTrains);
       // Filter trains where end station comes after start station in route
       const validDirectTrains = directTrains.filter((train) => {
         const startIndex = train.route.findIndex(
@@ -200,26 +200,26 @@ class TrainController {
       ]);
 
       // Find trains from nearby stations
-      const nearbyStationTrains = await Train.find({
-        "route.station": {
-          $all: [
-            { $in: nearbyStartStations.map((s) => s._id) },
-            { $in: nearbyEndStations.map((s) => s._id) },
-          ],
-        },
-        status: "Active",
-      }).populate("route.station");
+    //   const nearbyStationTrains = await Train.find({
+    //     "route.station": {
+    //       $all: [
+    //         { $in: nearbyStartStations.map((s) => s._id) },
+    //         { $in: nearbyEndStations.map((s) => s._id) },
+    //       ],
+    //     },
+    //     status: "Active",
+    //   }).populate("route.station");
 
       // Filter nearby trains where end station comes after start station
-      const validNearbyTrains = nearbyStationTrains.filter((train) => {
-        const startStationIndex = train.route.findIndex((r) =>
-          nearbyStartStations.some((s) => s._id.equals(r.station._id))
-        );
-        const endStationIndex = train.route.findIndex((r) =>
-          nearbyEndStations.some((s) => s._id.equals(r.station._id))
-        );
-        return startStationIndex < endStationIndex;
-      });
+    //   const validNearbyTrains = nearbyStationTrains.filter((train) => {
+    //     const startStationIndex = train.route.findIndex((r) =>
+    //       nearbyStartStations.some((s) => s._id.equals(r.station._id))
+    //     );
+    //     const endStationIndex = train.route.findIndex((r) =>
+    //       nearbyEndStations.some((s) => s._id.equals(r.station._id))
+    //     );
+    //     return startStationIndex < endStationIndex;
+    //   });
 
       res.status(200).json({
         success: true,
@@ -234,23 +234,24 @@ class TrainController {
               .arrivalTime,
             route: train.route,
           })),
-          alternativeTrains: validNearbyTrains.map((train) => {
-            const startStationInfo = train.route.find((r) =>
-              nearbyStartStations.some((s) => s._id.equals(r.station._id))
-            );
-            const endStationInfo = train.route.find((r) =>
-              nearbyEndStations.some((s) => s._id.equals(r.station._id))
-            );
-            return {
-              trainNo: train.trainNo,
-              trainName: train.trainName,
-              departureStation: startStationInfo.station,
-              arrivalStation: endStationInfo.station,
-              departureTime: startStationInfo.departureTime,
-              arrivalTime: endStationInfo.arrivalTime,
-              route: train.route,
-            };
-          }),
+          //   alternativeTrains: validNearbyTrains.map((train) => {
+          //     const startStationInfo = train.route.find((r) =>
+          //       nearbyStartStations.some((s) => s._id.equals(r.station._id))
+          //     );
+          //     const endStationInfo = train.route.find((r) =>
+          //       nearbyEndStations.some((s) => s._id.equals(r.station._id))
+          //     );
+          //     return {
+          //       trainNo: train.trainNo,
+          //       trainName: train.trainName,
+          //       departureStation: startStationInfo.station,
+          //       arrivalStation: endStationInfo.station,
+          //       departureTime: startStationInfo.departureTime,
+          //       arrivalTime: endStationInfo.arrivalTime,
+          //       route: train.route,
+          //     };
+          //   }),
+          alternativeTrains: "dishan lodu",
         },
       });
     } catch (error) {
