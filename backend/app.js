@@ -1,9 +1,6 @@
 const express = require("express");
 const { connect } = require("./src/db/connection");
 const cors = require("cors");
-const stripe = require("stripe")(
-  "sk_test_51OMTBgSBwW6fmG0JXexEGREGn1CViNKMuHzw53jJzGNQ7Mq9YJ92MRibCx2uXyKZgMBml2Dnl0463BAgI2Cd63lx009VOMLIpk"
-);
 
 // Import routes
 const userRoutes = require("./src/routes/userRoutes");

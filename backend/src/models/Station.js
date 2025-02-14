@@ -33,15 +33,26 @@ const stationSchema = new mongoose.Schema({
     },
   ],
   crowdLevel: {
-    type: Number,
-    default: 0, // 0-100 scale
-    min: 0,
-    max: 100,
-  },
-  stationMaster: {
-    name: String,
-    contact: String,
-    email: String,
+    current: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    historical: [
+      {
+        date: Date,
+        level: Number,
+        bookings: Number,
+      },
+    ],
+    predictions: [
+      {
+        date: Date,
+        level: Number,
+        confidence: Number,
+      },
+    ],
   },
 });
 

@@ -1,5 +1,6 @@
 const Station = require("../models/Station");
 const routeSuggestionService = require("../services/routeSuggestionService");
+const crowdPredictionService = require("../services/crowdPredictionService");
 
 class StationController {
   // Get all stations
@@ -128,6 +129,59 @@ class StationController {
     } catch (error) {
       res.status(400).json({ success: false, error: error.message });
     }
+  }
+
+  async getCrowdLevel(req, res) {
+    try {
+      const { stationId, date } = req.params;
+
+      // Get current crowd level
+      const station = await Station.findById(stationId);
+
+      // Get prediction for future date
+      const prediction = await crowdPredictionService.predictCrowdLevel(
+        stationId,
+        date
+      );
+
+      // Update station predictions
+      await Station.findByIdAndUpdate(stationId, {
+        $push: {
+          "crowdLevel.predictions": {
+            date: new Date(date),
+            level: prediction.level,
+            confidence: prediction.confidence,
+          },
+        },
+      });
+
+      return res.status(200).json({
+        currentLevel: station.crowdLevel.current,
+        prediction: prediction,
+        alternativeStations: await this.suggestAlternativeStations(
+          stationId,
+          prediction.level
+        ),
+      });
+    } catch (error) {
+      console.error("Error in getCrowdLevel:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  }
+
+  async suggestAlternativeStations(stationId, crowdLevel) {
+    if (crowdLevel < 70) return []; // Only suggest alternatives for high crowd levels
+
+    const station = await Station.findById(stationId);
+    return Station.find({
+      location: {
+        $near: {
+          $geometry: station.location,
+          $maxDistance: 30000, // 30km radius
+        },
+      },
+      "crowdLevel.current": { $lt: crowdLevel - 20 },
+    }).limit(3);
   }
 }
 
