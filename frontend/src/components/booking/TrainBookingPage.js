@@ -33,7 +33,7 @@ const StyledMenu = styled((props) => (
     boxShadow:
       "0 4px 6px -1px rgba(250, 204, 21, 0.1), 0 2px 4px -1px rgba(250, 204, 21, 0.06)",
     "& .MuiMenu-list": {
-      padding: "8px",
+      padding: "4px",
       maxHeight: "300px",
       overflowY: "auto",
       "&::-webkit-scrollbar": {
@@ -62,11 +62,6 @@ const StyledMenu = styled((props) => (
         backgroundColor: "rgba(250, 204, 21, 0.2)",
         color: "#facc15",
       },
-      "& .MuiSvgIcon-root": {
-        fontSize: 18,
-        color: theme.palette.text.secondary,
-        marginRight: theme.spacing(1.5),
-      },
       "&:active": {
         backgroundColor: "rgba(250, 204, 21, 0.3)",
       },
@@ -93,6 +88,8 @@ const TrainBookingPage = () => {
   const [fairCost, setFairCost] = useState(0);
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [departureSearchQuery, setDepartureSearchQuery] = useState("");
+  const [arrivalSearchQuery, setArrivalSearchQuery] = useState("");
 
   const open = Boolean(anchorEl);
   const token = localStorage.getItem('token');
@@ -191,6 +188,7 @@ const TrainBookingPage = () => {
           }
           return acc;
         }, []);
+        console.log(uniqueTrains);
 
         setShowTrainData(uniqueTrains.map(train => ({
           train: {
@@ -240,6 +238,8 @@ const TrainBookingPage = () => {
   const handleClose = () => {
     setAnchorEl(null);
     setMenuType("");
+    setDepartureSearchQuery("");
+    setArrivalSearchQuery("");
   };
 
   const handleSubmit = (e) => {
@@ -261,6 +261,13 @@ const TrainBookingPage = () => {
       return;
     }
     fetchTrains();
+  };
+
+  const getFilteredStations = (searchQuery) => {
+    return stations.filter(station => 
+      station.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      station.code.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   };
 
   return (
@@ -301,14 +308,26 @@ const TrainBookingPage = () => {
                   open={open && menuType === "departure"}
                   onClose={handleClose}
                 >
-                  {stations.map((station) => (
-                    <MenuItem
-                      key={station._id}
-                      onClick={() => handleMenuItemClick(station)}
-                    >
-                      {station.name} ({station.code})
-                    </MenuItem>
-                  ))}
+                  <div className="px-2 py-2 sticky top-0 bg-black/90 border-b border-yellow-400/30 z-50">
+                    <input
+                      type="text"
+                      placeholder="Search stations..."
+                      value={departureSearchQuery}
+                      onChange={(e) => setDepartureSearchQuery(e.target.value)}
+                      className="w-full px-3 py-2 bg-transparent border-2 border-yellow-400/30 rounded-lg text-white focus:outline-none focus:border-yellow-400 text-sm"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  <div className="mt-2">
+                    {getFilteredStations(departureSearchQuery).map((station) => (
+                      <MenuItem
+                        key={station._id}
+                        onClick={() => handleMenuItemClick(station)}
+                      >
+                        {station.name} ({station.code})
+                      </MenuItem>
+                    ))}
+                  </div>
                 </StyledMenu>
               </div>
 
@@ -339,14 +358,26 @@ const TrainBookingPage = () => {
                   open={open && menuType === "arrival"}
                   onClose={handleClose}
                 >
-                  {stations.map((station) => (
-                    <MenuItem
-                      key={station._id}
-                      onClick={() => handleMenuItemClick(station)}
-                    >
-                      {station.name}
-                    </MenuItem>
-                  ))}
+                  <div className="px-2 py-2 sticky top-0 bg-black/90 border-b border-yellow-400/30 z-50">
+                    <input
+                      type="text"
+                      placeholder="Search stations..."
+                      value={arrivalSearchQuery}
+                      onChange={(e) => setArrivalSearchQuery(e.target.value)}
+                      className="w-full px-3 py-2 bg-transparent border-2 border-yellow-400/30 rounded-lg text-white focus:outline-none focus:border-yellow-400 text-sm"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  <div className="mt-2">
+                    {getFilteredStations(arrivalSearchQuery).map((station) => (
+                      <MenuItem
+                        key={station._id}
+                        onClick={() => handleMenuItemClick(station)}
+                      >
+                        {station.name} ({station.code})
+                      </MenuItem>
+                    ))}
+                  </div>
                 </StyledMenu>
               </div>
             </div>
