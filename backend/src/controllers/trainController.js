@@ -146,15 +146,11 @@ class TrainController {
   // Find trains between stations
   async findTrainsBetweenStations(req, res) {
     try {
-      // console.log("waw");
       const { startStation, endStation } = req.query;
-      //   console.log(startStation, endStation);
-      // Validate input stations
-      const [start, end] = await Promise.all([
-        Station.findById(startStation),
-        Station.findById(endStation),
-      ]);
-      //   console.log(start, end);
+
+      const start = await Station.findById(startStation);
+      const end = await Station.findById(endStation);
+
       if (!start || !end) {
         return res.status(404).json({
           success: false,
@@ -167,7 +163,7 @@ class TrainController {
         "route.station": { $all: [startStation, endStation] },
         status: "Active",
       }).populate("route.station");
-      //   console.log(directTrains);
+
       // Filter trains where end station comes after start station in route
       const validDirectTrains = directTrains.filter((train) => {
         const startIndex = train.route.findIndex(
@@ -179,95 +175,33 @@ class TrainController {
         return startIndex < endIndex;
       });
 
-      // Find nearby stations within 10km radius
+      // Find nearby stations
       const [nearbyStartStations, nearbyEndStations] = await Promise.all([
-        Station.find({
-          location: {
-            $near: {
-              $geometry: start.location,
-              $maxDistance: 10000, // 10km in meters
-            },
-          },
-          _id: { $ne: start._id },
-        }),
-        Station.find({
-          location: {
-            $near: {
-              $geometry: end.location,
-              $maxDistance: 10000, // 10km in meters
-            },
-          },
-          _id: { $ne: end._id },
-        }),
+        routeSuggestionService.findNearbyAlternatives(start, 10),
+        routeSuggestionService.findNearbyAlternatives(end, 30),
       ]);
 
-      // Find trains from nearby stations
-      console.log("waw1");
-      const nearbyStationTrains = await Train.find({
-        "route.station": {
-          $all: [
-            {
-              $in: (
-                await routeSuggestionService.findNearbyAlternatives(
-                  start,
-                  10
-                )
-              )?.map((s) => s._id),
-            },
-            {
-              $in: (
-                await routeSuggestionService.findNearbyAlternatives(
-                  end,
-                  10
-                )
-              )?.map((s) => s._id),
-            },
-          ],
-        },
-        status: "Active",
-      }).populate("route.station");
-      console.log("waw2", nearbyStationTrains);
-      // Filter nearby trains where end station comes after start station
-      const validNearbyTrains = nearbyStationTrains.filter((train) => {
-        const startStationIndex = train.route.findIndex((r) =>
-          nearbyStartStations.some((s) => s._id.equals(r.station._id))
-        );
-        const endStationIndex = train.route.findIndex((r) =>
-          nearbyEndStations.some((s) => s._id.equals(r.station._id))
-        );
-        return startStationIndex < endStationIndex;
-      });
+      // Modified nearby stations query
+      const nearbyStartStationIds = nearbyStartStations.map(
+        (s) => s.station._id || s.station
+      );
+      const nearbyEndStationIds = nearbyEndStations.map(
+        (s) => s.station._id || s.station
+      );
 
+      const nearbyStationTrains = await Train.find({
+        status: "Active",
+        $and: [
+          { "route.station": { $in: nearbyStartStationIds } },
+          { "route.station": { $in: nearbyEndStationIds } },
+        ],
+      }).populate("route.station");
+      console.log("nearbyStationTrains", nearbyStationTrains);
       res.status(200).json({
         success: true,
         data: {
-          directTrains: validDirectTrains.map((train) => ({
-            trainNo: train.trainNo,
-            trainName: train.trainName,
-            departureTime: train.route.find(
-              (r) => r.station.id === startStation
-            ).departureTime,
-            arrivalTime: train.route.find((r) => r.station.id === endStation)
-              .arrivalTime,
-            route: train.route,
-          })),
-          alternativeTrains: validNearbyTrains.map((train) => {
-            const startStationInfo = train.route.find((r) =>
-              nearbyStartStations.some((s) => s._id.equals(r.station._id))
-            );
-            const endStationInfo = train.route.find((r) =>
-              nearbyEndStations.some((s) => s._id.equals(r.station._id))
-            );
-            return {
-              trainNo: train.trainNo,
-              trainName: train.trainName,
-              departureStation: startStationInfo.station,
-              arrivalStation: endStationInfo.station,
-              departureTime: startStationInfo.departureTime,
-              arrivalTime: endStationInfo.arrivalTime,
-              route: train.route,
-            };
-          }),
+          directTrains: validDirectTrains,
+          alternativeTrains: nearbyStationTrains
         },
       });
     } catch (error) {
