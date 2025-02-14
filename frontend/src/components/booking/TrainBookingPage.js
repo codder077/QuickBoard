@@ -178,12 +178,21 @@ const TrainBookingPage = () => {
       );
 
       if (response.data.success) {
+        // Combine direct and alternative trains
         const allTrains = [
           ...(response.data.data.directTrains || []),
           ...(response.data.data.alternativeTrains || [])
         ];
 
-        setShowTrainData(allTrains.map(train => ({
+        // Remove duplicates based on trainNo
+        const uniqueTrains = allTrains.reduce((acc, train) => {
+          if (!acc.some(t => t.trainNo === train.trainNo)) {
+            acc.push(train);
+          }
+          return acc;
+        }, []);
+
+        setShowTrainData(uniqueTrains.map(train => ({
           train: {
             train_ID: train.trainNo,
             train_name: train.trainName,
