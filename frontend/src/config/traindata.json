@@ -1,0 +1,29 @@
+[
+    {
+      "train_ID": 14054,
+      "train_name": "HIMACHAL_EXPRESS",
+      "coach":[{"type":"Sleeper","seats":4,"tatkal":2}],
+      
+      "travel":[ {"station": "Una_Himachal", "arrival_time": "21:48", "departure_time": "21:53","cost":0},
+      {"station": "Ambala_City", "arrival_time": "01:06", "departure_time": "01:11","cost":80},
+      {"station": "Ambala_Cant", "arrival_time": "01:30", "departure_time": "01:35","cost":100},
+      {"station": "Karnal", "arrival_time": "02:29", "departure_time": "02:34","cost":180},
+      {"station": "Delhi_Junction", "arrival_time": "05:00", "departure_time": "05:00","cost":250}
+    ]
+    },
+    {
+        "train_ID": 12345,
+        "train_name": "PURANGIRI_JANSHATABDI",
+        "coach":[{"type":"Sleeper","seats":4,"tatkal":2}],
+
+        "travel":[ {"station": "Delhi_Junction", "arrival_time": "06:25", "departure_time": "06:30","cost":0},
+        {"station": "Hapur", "arrival_time": "08:00", "departure_time": "08:05","cost":30},
+        {"station": "Gajraula", "arrival_time": "08:52", "departure_time": "01:35","cost":50},
+        {"station": "Amroha", "arrival_time": "09:13", "departure_time": "09:18","cost":70},
+        {"station": "Moradabad", "arrival_time": "10:08", "departure_time": "10:13","cost":100},
+        {"station": "Bareilly", "arrival_time": "12:53", "departure_time": "12:58","cost":130}
+      ]
+      }
+    
+]
+  
