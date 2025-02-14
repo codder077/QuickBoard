@@ -30,7 +30,7 @@ console.log(passengerDetails)
       )
     );
   };
-
+   
   const handleAddPassenger = () => {
     setPassengerDetails([...passengerDetails, { name: '', age: '', location: '', gender: '', dob: '' }]);
   };
