@@ -94,6 +94,7 @@ const TrainBookingPage = () => {
   const [arrivalSearchQuery, setArrivalSearchQuery] = useState("");
   const [selectedTrain, setSelectedTrain] = useState(null);
   const [routeDialogOpen, setRouteDialogOpen] = useState(false);
+  const [selectedCoaches, setSelectedCoaches] = useState({});
 
   const open = Boolean(anchorEl);
   const token = localStorage.getItem('token');
@@ -203,7 +204,8 @@ const TrainBookingPage = () => {
             train_name: train.trainName,
             departureTime: train.departureTime,
             arrivalTime: train.arrivalTime,
-            route: train.route
+            route: train.route,
+            coaches: train.coaches
           },
           cost: train.fare || calculateFare(train)
         })));
@@ -280,6 +282,21 @@ const TrainBookingPage = () => {
   const handleRouteClick = (train) => {
     setSelectedTrain(train);
     setRouteDialogOpen(true);
+  };
+
+  const handleCoachSelection = (trainId, coachType) => {
+    setSelectedCoaches((prev) => ({
+      ...prev,
+      [trainId]: coachType,
+    }));
+  };
+
+  const handleBookNow = (train) => {
+    const selectedCoach = selectedCoaches[train._id];
+    const selectedCoachData = train.train.coaches.find(coach => coach.type === selectedCoach); // Get the selected coach data
+    const fare = selectedCoachData ? selectedCoachData.fare : 0; // Get the fare for the selected coach
+
+    navigate('/details', { state: { train, selectedCoach, fare } }); // Pass train, selected coach, and fare
   };
 
   return (
@@ -446,36 +463,54 @@ const TrainBookingPage = () => {
                 <span className="text-yellow-400 mx-2">Trains</span>
               </h2>
               
-              {showTrainData.length>0 && showTrainData.map((train) => (
-                <div key={train.train.train_ID} className="bg-black/50 backdrop-blur-sm border-2 border-yellow-400/30 rounded-xl p-6 mb-6">
-                  <div className="flex justify-between items-center">
-                    <div>
+              {showTrainData.map((train) => (
+                <div key={train._id} className="bg-black/50 backdrop-blur-sm border-2 border-yellow-400/30 rounded-xl p-6 mb-6">
+                  <div className="flex flex-col md:flex-row justify-between items-start">
+                    <div className="flex-1">
                       <h3 className="text-2xl font-bold text-yellow-400">{train.train.train_name}</h3>
                       <p className="text-white">Train No: {train.train.train_ID}</p>
                       <p className="text-white">From: {departingStation.name}</p>
                       <p className="text-white">To: {arrivingStation.name}</p>
                       <p className="text-white">Date: {selectedDate}</p>
                       
-                      <button
-                        onClick={() => handleRouteClick(train)}
-                        className="mt-4 px-4 py-2 bg-yellow-400/20 text-yellow-400 rounded-lg hover:bg-yellow-400/30 transition-colors flex items-center gap-2"
-                      >
-                        <TrainIcon />
-                        View Route
-                      </button>
+                      {train.train.coaches && train.train.coaches.length > 0 ? (
+                        train.train.coaches.map((coach, index) => (
+                          <div key={index} className="flex justify-between items-center bg-gray-800 p-2 rounded-md mt-2">
+                            <div className="flex-1">
+                              <p className="text-white">{coach.type}</p>
+                              <p className="text-yellow-400">Fare: ₹{coach.fare}</p>
+                              <p className="text-yellow-400">{coach.totalSeats} seats</p>
+                            </div>
+                            <label className="text-white flex items-center gap-2">
+                              <input
+                                type="radio"
+                                checked={selectedCoaches[train._id] === coach.type}
+                                onChange={() => handleCoachSelection(train._id, coach.type)}
+                                className="form-radio text-yellow-400"
+                              />
+                              Select
+                            </label>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-red-400">No coaches available</p>
+                      )}
                     </div>
-                    <div>
-                      <p className="text-2xl font-bold text-yellow-400">₹{train.cost}</p>
+                    <div className="mt-4 md:mt-0 md:ml-4">
                       <div className="flex items-center gap-4 mt-4">
-                        <label className="text-white flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={coachState}
-                            onChange={() => onCoachState(500)}
-                            className="form-checkbox text-yellow-400"
-                          />
-                          Sleeper Class (+₹500)
-                        </label>
+                        <button
+                          onClick={() => handleRouteClick(train)}
+                          className="px-4 py-2 bg-yellow-400/20 text-yellow-400 rounded-lg hover:bg-yellow-400/30 transition-colors flex items-center gap-2"
+                        >
+                          <TrainIcon />
+                          View Route
+                        </button>
+                        <button
+                          onClick={() => handleBookNow(train)}
+                          className="px-4 py-2 bg-yellow-400/20 text-yellow-400 rounded-lg hover:bg-yellow-400/30 transition-colors flex items-center gap-2"
+                        >
+                          Book Now
+                        </button>
                       </div>
                     </div>
                   </div>

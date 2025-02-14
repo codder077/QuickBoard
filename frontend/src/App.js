@@ -14,6 +14,7 @@ import SignUp from "./components/signup/Signup";
 import Tagline from "./components/tagline/Tagline";
 import Dashboard from "./components/dashboard/dashboard";
 import TrainRoutePage from './pages/TrainRoutePage';
+import Details from './components/details/details';
 import { Route, Routes } from "react-router-dom";
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
         <Route exact path="/flightcancel" element={<FlightCancelPage />} />
         <Route exact path="/dashboard" element={<Dashboard />} />
         <Route path="/train-route" element={<TrainRoutePage />} />
+        <Route path="/details" element={<Details />} />
       </Routes>
     </>
   );
