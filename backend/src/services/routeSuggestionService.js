@@ -26,6 +26,7 @@ class RouteSuggestionService {
 
   async findNearbyAlternatives(station, maxDistance = 30) { // Default 30km radius
     try {
+      console.log("station", station);
       const nearbyStations = await Station.find({
         _id: { $ne: station._id }, // Exclude the current station
         location: {
@@ -35,7 +36,7 @@ class RouteSuggestionService {
           }
         }
       }).select('name code location crowdLevel.current nearbyStations');
-
+      console.log("nearbyStations", nearbyStations);
       // Calculate distances and map results
       const mappedStations = nearbyStations.map(nearby => {
         // Calculate distance between points using MongoDB's $geoNear
@@ -54,7 +55,7 @@ class RouteSuggestionService {
           travelTime: Math.round(distance * 2) // Rough estimate: 2 min per km
         };
       });
-
+      console.log("mappedStations", mappedStations);
       return mappedStations;
 
     } catch (error) {

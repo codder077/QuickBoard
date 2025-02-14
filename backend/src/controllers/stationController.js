@@ -102,7 +102,7 @@ class StationController {
   getNearbyStations = async (req, res) => {
     try {
       const { id } = req.params;
-      const { radius } = req.query; // radius in kilometers
+      const { radius = 10 } = req.query; // radius in kilometers
 
       const station = await Station.findById(id);
       if (!station) {
