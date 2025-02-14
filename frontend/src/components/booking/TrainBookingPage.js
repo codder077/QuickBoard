@@ -7,6 +7,8 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import axios from 'axios';
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import TrainRouteTimeline from "./TrainRouteTimeline";
+import TrainIcon from "@mui/icons-material/Train";
 
 const StyledMenu = styled((props) => (
   <Menu
@@ -90,6 +92,8 @@ const TrainBookingPage = () => {
   const [loading, setLoading] = useState(false);
   const [departureSearchQuery, setDepartureSearchQuery] = useState("");
   const [arrivalSearchQuery, setArrivalSearchQuery] = useState("");
+  const [selectedTrain, setSelectedTrain] = useState(null);
+  const [routeDialogOpen, setRouteDialogOpen] = useState(false);
 
   const open = Boolean(anchorEl);
   const token = localStorage.getItem('token');
@@ -188,8 +192,8 @@ const TrainBookingPage = () => {
           }
           return acc;
         }, []);
-        console.log(uniqueTrains);
 
+        console.log(uniqueTrains);
         // Filter out invalid trains before mapping
         const validTrains = uniqueTrains.filter(train => train.trainNo && train.trainName);
 
@@ -271,6 +275,11 @@ const TrainBookingPage = () => {
       station.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       station.code.toLowerCase().includes(searchQuery.toLowerCase())
     );
+  };
+
+  const handleRouteClick = (train) => {
+    setSelectedTrain(train);
+    setRouteDialogOpen(true);
   };
 
   return (
@@ -438,7 +447,7 @@ const TrainBookingPage = () => {
               </h2>
               
               {showTrainData.length>0 && showTrainData.map((train) => (
-                <div key={train.train.train_ID} className="bg-black/50 backdrop-blur-sm border-2 border-yellow-400/30 rounded-xl p-6 mb-6 transform hover:scale-[1.02] transition-all duration-300">
+                <div key={train.train.train_ID} className="bg-black/50 backdrop-blur-sm border-2 border-yellow-400/30 rounded-xl p-6 mb-6">
                   <div className="flex justify-between items-center">
                     <div>
                       <h3 className="text-2xl font-bold text-yellow-400">{train.train.train_name}</h3>
@@ -446,6 +455,14 @@ const TrainBookingPage = () => {
                       <p className="text-white">From: {departingStation.name}</p>
                       <p className="text-white">To: {arrivingStation.name}</p>
                       <p className="text-white">Date: {selectedDate}</p>
+                      
+                      <button
+                        onClick={() => handleRouteClick(train)}
+                        className="mt-4 px-4 py-2 bg-yellow-400/20 text-yellow-400 rounded-lg hover:bg-yellow-400/30 transition-colors flex items-center gap-2"
+                      >
+                        <TrainIcon />
+                        View Route
+                      </button>
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-yellow-400">₹{train.cost}</p>
@@ -493,6 +510,18 @@ const TrainBookingPage = () => {
             </button>
           )}
         </form>
+
+        {selectedTrain && (
+          <TrainRouteTimeline
+            open={routeDialogOpen}
+            handleClose={() => setRouteDialogOpen(false)}
+            route={selectedTrain.train.route}
+            trainName={selectedTrain.train.train_name}
+            trainId={selectedTrain.train.train_ID}
+            departureTime={selectedTrain.train.departureTime}
+            arrivalTime={selectedTrain.train.arrivalTime}
+          />
+        )}
       </div>
     </div>
   );
