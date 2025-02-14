@@ -5,6 +5,9 @@ const cors = require("cors");
 // Import routes
 const userRoutes = require("./src/routes/userRoutes");
 const ticketRoutes = require("./src/routes/ticketRoutes");
+const trainRoutes = require("./src/routes/trainRoutes");
+const stationRoutes = require("./src/routes/stationRoutes");
+const bookingRoutes = require("./src/routes/bookingRoutes");
 
 const app = express();
 
@@ -22,8 +25,11 @@ app.get("/", (req, res) => {
 });
 
 // API routes
-app.use("/api", userRoutes);
-app.use("/api", ticketRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/tickets", ticketRoutes);
+app.use("/api/trains", trainRoutes);
+app.use("/api/stations", stationRoutes);
+app.use("/api/bookings", bookingRoutes);
 
 const port = process.env.PORT || 8000;
 

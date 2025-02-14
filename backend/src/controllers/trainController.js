@@ -1,4 +1,4 @@
-const Train = require("../models/Train");
+const Train = require("../models/train");
 const Station = require("../models/Station");
 
 class TrainController {
