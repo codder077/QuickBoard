@@ -146,7 +146,7 @@ class TrainController {
   async findTrainsBetweenStations(req, res) {
     try {
       const { startStation, endStation } = req.query;
-
+      console.log(startStation, endStation);
       // Validate input stations
       const [start, end] = await Promise.all([
         Station.findById(startStation),
@@ -165,7 +165,7 @@ class TrainController {
         "route.station": { $all: [startStation, endStation] },
         status: "Active",
       }).populate("route.station");
-
+      console.log(directTrains);
       // Filter trains where end station comes after start station in route
       const validDirectTrains = directTrains.filter((train) => {
         const startIndex = train.route.findIndex(

@@ -297,7 +297,7 @@ const TrainBookingPage = () => {
                       key={station._id}
                       onClick={() => handleMenuItemClick(station)}
                     >
-                      {station.name}
+                      {station.name} ({station.code})
                     </MenuItem>
                   ))}
                 </StyledMenu>
