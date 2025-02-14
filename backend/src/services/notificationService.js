@@ -16,7 +16,7 @@ class NotificationService {
   async sendCancellationNotification(booking) {
     try {
       const user = await User.findById(booking.user);
-        // console.log(user);
+      // console.log(user);
       // Send email notification
       await this.transporter.sendMail({
         from: process.env.FROM_EMAIL,
@@ -131,9 +131,133 @@ class NotificationService {
           <p>Thank you for choosing our service!</p>
         `,
       });
-    //   console.log('waw');
+      //   console.log('waw');
     } catch (error) {
       throw new Error(`Failed to send booking confirmation: ${error.message}`);
+    }
+  }
+
+  async sendTicketCancellationNotification(data) {
+    try {
+      const { ticket, user, refundAmount, booking } = data;
+
+      // Prepare email content
+      const emailContent = {
+        to: user.email,
+        subject: `Ticket Cancellation Confirmation - PNR: ${ticket.pnr}`,
+        html: `
+          <h2>Ticket Cancellation Confirmation</h2>
+          <p>Dear ${user.name},</p>
+          <p>Your ticket has been successfully cancelled.</p>
+          
+          <h3>Ticket Details:</h3>
+          <ul>
+            <li>PNR: ${ticket.pnr}</li>
+            <li>Train: ${ticket.train.name}</li>
+            <li>From: ${ticket.fromStation.name}</li>
+            <li>To: ${ticket.toStation.name}</li>
+            <li>Travel Date: ${new Date(
+              ticket.travelStartDate
+            ).toLocaleDateString()}</li>
+            <li>Passenger: ${ticket.passenger.name}</li>
+          </ul>
+
+          <h3>Refund Details:</h3>
+          <ul>
+            <li>Refund Amount: ₹${refundAmount}</li>
+            <li>Booking Total After Refund: ₹${booking.totalFare}</li>
+            <li>Payment Status: ${booking.paymentStatus}</li>
+          </ul>
+
+          <p>The refund will be processed to your original payment method within 5-7 business days.</p>
+          
+          <p>Thank you for using our service.</p>
+        `,
+      };
+
+      // Send email
+      await this.sendEmail(emailContent);
+
+      // You could also add SMS notification here if required
+      // await this.sendSMS(user.phone, `Your ticket (PNR: ${ticket.pnr}) has been cancelled. Refund of ₹${refundAmount} will be processed shortly.`);
+    } catch (error) {
+      console.error("Failed to send ticket cancellation notification:", error);
+      throw new Error("Failed to send cancellation notification");
+    }
+  }
+
+  async sendTicketTransferNotification(data) {
+    try {
+      const {
+        originalTicket,
+        newTicket,
+        fromUser,
+        toUser,
+        originalBooking,
+        newBooking,
+      } = data;
+
+      // Notification for original ticket holder
+      const originalUserEmail = {
+        to: fromUser.email,
+        subject: `Ticket Transfer Confirmation - PNR: ${originalTicket.pnr}`,
+        html: `
+          <h2>Ticket Transfer Confirmation</h2>
+          <p>Dear ${fromUser.name},</p>
+          <p>Your ticket has been partially transferred.</p>
+          
+          <h3>Original Ticket Update:</h3>
+          <ul>
+            <li>PNR: ${originalTicket.pnr}</li>
+            <li>Train: ${originalTicket.train.name}</li>
+            <li>From: ${originalTicket.fromStation.name}</li>
+            <li>To: ${originalTicket.toStation.name} (Updated)</li>
+            <li>Travel Date: ${new Date(
+              originalTicket.travelStartDate
+            ).toLocaleDateString()} - 
+                ${new Date(
+                  originalTicket.travelEndDate
+                ).toLocaleDateString()}</li>
+          </ul>
+
+          <p>The remaining portion of your journey has been transferred to another user.</p>
+        `,
+      };
+
+      // Notification for new ticket holder
+      const newUserEmail = {
+        to: toUser.email,
+        subject: `New Ticket Transfer Received - PNR: ${newTicket.pnr}`,
+        html: `
+          <h2>New Ticket Received</h2>
+          <p>Dear User,</p>
+          <p>A ticket has been transferred to you.</p>
+          
+          <h3>New Ticket Details:</h3>
+          <ul>
+            <li>PNR: ${newTicket.pnr}</li>
+            <li>Train: ${newTicket.train.name}</li>
+            <li>From: ${newTicket.fromStation.name}</li>
+            <li>To: ${newTicket.toStation.name}</li>
+            <li>Travel Date: ${new Date(
+              newTicket.travelStartDate
+            ).toLocaleDateString()} - 
+                ${new Date(newTicket.travelEndDate).toLocaleDateString()}</li>
+            <li>Booking Amount: ₹${newBooking.totalFare}</li>
+          </ul>
+
+          <p>Please complete the payment to confirm your ticket.</p>
+        `,
+      };
+
+      // Send emails
+      await Promise.all([
+        this.sendEmail(originalUserEmail),
+        this.sendEmail(newUserEmail),
+      ]);
+    } catch (error) {
+      console.error("Failed to send ticket transfer notification:", error);
+      throw new Error("Failed to send transfer notification");
     }
   }
 }
