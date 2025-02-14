@@ -1,4 +1,4 @@
-const Train = require("../models/train");
+const trainSchema = require("../models/train");
 const Booking = require("../models/Booking");
 
 class BookingService {
@@ -14,12 +14,13 @@ class BookingService {
       } = bookingData;
 
       // Check seat availability
-      const train = await Train.findById(trainId);
+      const train = await trainSchema.findById(trainId);
       if (!train) {
         throw new Error("Train not found");
       }
 
       // Calculate fare
+      console.log(coachType);
       const fare = this.calculateFare(train, coachType, passengers.length);
 
       // Create new booking
@@ -65,6 +66,7 @@ class BookingService {
 
   calculateFare(train, coachType, passengerCount) {
     // Find the coach details from train
+    console.log(train);
     const coach = train.coaches.find(c => c.type === coachType);
     if (!coach) {
       throw new Error(`Coach type ${coachType} not found`);

@@ -2,9 +2,10 @@ const Station = require("../models/Station");
 const routeSuggestionService = require("../services/routeSuggestionService");
 const crowdPredictionService = require("../services/crowdPredictionService");
 
+// Use arrow functions to preserve 'this' context
 class StationController {
   // Get all stations
-  async getAllStations(req, res) {
+  getAllStations = async (req, res) => {
     try {
       const stations = await Station.find().populate("nearbyStations.station");
       res.status(200).json({ success: true, data: stations });
@@ -14,7 +15,7 @@ class StationController {
   }
 
   // Get single station
-  async getStation(req, res) {
+  getStation = async (req, res) => {
     try {
       const station = await Station.findById(req.params.id).populate(
         "nearbyStations.station"
@@ -33,7 +34,7 @@ class StationController {
   }
 
   // Create station
-  async createStation(req, res) {
+  createStation = async (req, res) => {
     try {
       const station = await Station.create(req.body);
       res.status(201).json({ success: true, data: station });
@@ -43,7 +44,7 @@ class StationController {
   }
 
   // Create multiple stations
-  async createManyStations(req, res) {
+  createManyStations = async (req, res) => {
     try {
       const stations = req.body;
       if (!Array.isArray(stations)) {
@@ -61,7 +62,7 @@ class StationController {
   }
 
   // Update station
-  async updateStation(req, res) {
+  updateStation = async (req, res) => {
     try {
       const station = await Station.findByIdAndUpdate(req.params.id, req.body, {
         new: true,
@@ -81,7 +82,7 @@ class StationController {
   }
 
   // Delete station
-  async deleteStation(req, res) {
+  deleteStation = async (req, res) => {
     try {
       const station = await Station.findByIdAndDelete(req.params.id);
 
@@ -98,7 +99,7 @@ class StationController {
   }
 
   // Get nearby stations
-  async getNearbyStations(req, res) {
+  getNearbyStations = async (req, res) => {
     try {
       const { id } = req.params;
       const { radius } = req.query; // radius in kilometers
@@ -119,7 +120,7 @@ class StationController {
   }
 
   // Update crowd level
-  async updateCrowdLevel(req, res) {
+  updateCrowdLevel = async (req, res) => {
     try {
       const { id } = req.params;
       const { crowdLevel } = req.body;
@@ -149,7 +150,7 @@ class StationController {
     }
   }
 
-  async getCrowdLevel(req, res) {
+  getCrowdLevel = async (req, res) => {
     try {
       const { stationId, date } = req.params;
 
@@ -177,7 +178,7 @@ class StationController {
 
       // Get alternative stations
       const alternativeStations = await this.suggestAlternativeStations(station, prediction.level);
-      
+
       return res.status(200).json({
         currentLevel: station.crowdLevel.current,
         prediction: prediction,
@@ -189,7 +190,7 @@ class StationController {
     }
   }
 
-  async suggestAlternativeStations(station, crowdLevel) {
+  suggestAlternativeStations = async (station, crowdLevel) => {
     if (crowdLevel < 70) return []; // Only suggest alternatives for high crowd levels
 
     return Station.find({
