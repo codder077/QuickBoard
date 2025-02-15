@@ -10,7 +10,7 @@ const Dashboard = () => {
         const token = localStorage.getItem("token");
         console.log("token", token);
 
-        const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
+        const userResponse = await fetch(`${API_BASE_URL}/users/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -19,7 +19,7 @@ const Dashboard = () => {
         console.log("456",user);
         setUserData(user);
 
-        const bookingsResponse = await fetch(`${API_BASE_URL}/api/bookings`, {
+        const bookingsResponse = await fetch(`${API_BASE_URL}/bookings`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

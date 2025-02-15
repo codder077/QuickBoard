@@ -33,6 +33,7 @@ function App() {
               <Tagline />
               <Features />
               <Services />
+              <TrainComparisonForm />
               <Faq/>
             </>
           }
@@ -51,7 +52,7 @@ function App() {
         <Route path="/allowance" element={<Allowance />} />
         <Route path="/success" element={<Success />} />
       </Routes>
-      <TrainComparisonForm />
+      
     </>
   );
 }
