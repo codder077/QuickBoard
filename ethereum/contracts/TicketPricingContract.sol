@@ -11,7 +11,11 @@ contract TicketPricingContract {
     }
 
     function updateTicketPrice(uint256 newPrice) external {
-        // Logic to update ticket price
-        // Emit event TicketPriceUpdated
+        originalTicketPrice = newPrice;
+        emit TicketPriceUpdated(newPrice);
+    }
+
+    function getTicketPrice() external view returns (uint256) {
+        return originalTicketPrice;
     }
 }
