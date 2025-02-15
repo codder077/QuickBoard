@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import TrainRouteTimeline from "./TrainRouteTimeline";
 import TrainIcon from "@mui/icons-material/Train";
+import { API_BASE_URL } from "../../utils/config";
 
 const StyledMenu = styled((props) => (
   <Menu
@@ -110,7 +111,7 @@ const TrainBookingPage = () => {
 
   const fetchStations = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/stations');
+      const response = await axios.get(`${API_BASE_URL}/stations`);
       setStations(response.data.data);
     } catch (error) {
       toast.error('Failed to fetch stations');
@@ -146,7 +147,7 @@ const TrainBookingPage = () => {
 
       setLoading(true);
       const response = await axios.post(
-        'http://localhost:8000/api/bookings',
+        `${API_BASE_URL}/bookings`,
         bookingData,
         config
       );
@@ -169,7 +170,7 @@ const TrainBookingPage = () => {
       setLoading(true);
       console.log(departingStation.id, arrivingStation.id, selectedDate); 
       const response = await axios.get(
-        `http://localhost:8000/api/trains/search`,
+        `${API_BASE_URL}/trains/search`,
         {
           params: {
             startStation: departingStation.id,

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { useNavigate, Link } from "react-router-dom";
+import { API_BASE_URL } from "../../utils/config";
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ const SignUp = () => {
       }
 
       const response = await axios.post(
-        "http://localhost:8000/api/users/register",
+        `${API_BASE_URL}/users/register`,
         {
           ...user,
           phone: Number(user.phone)

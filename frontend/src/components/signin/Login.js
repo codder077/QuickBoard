@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import toast, { Toaster } from "react-hot-toast";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom"
+import { API_BASE_URL } from '../../utils/config';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -15,7 +16,7 @@ const Login = () => {
     
     const onSignIn = async () => {
         try {
-            const response = await axios.post("http://localhost:8000/api/users/login", user);
+            const response = await axios.post(`${API_BASE_URL}/users/login`, user);
             
             if (response.data.success) {
                 localStorage.setItem('token', response.data.token);
