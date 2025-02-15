@@ -197,9 +197,10 @@ const TrainBookingPage = () => {
         console.log(uniqueTrains);
         // Filter out invalid trains before mapping
         const validTrains = uniqueTrains.filter(train => train.trainNo && train.trainName);
-
+          console.log("valid",validTrains);
         setShowTrainData(validTrains.map(train => ({
           train: {
+            id:train._id,
             train_ID: train.trainNo,
             train_name: train.trainName,
             departureTime: train.departureTime,
@@ -291,12 +292,12 @@ const TrainBookingPage = () => {
     }));
   };
 
-  const handleBookNow = (train) => {
+  const handleBookNow = (train,departingStation,arrivingStation , selectedDate) => {
     const selectedCoach = selectedCoaches[train._id];
     const selectedCoachData = train.train.coaches.find(coach => coach.type === selectedCoach); // Get the selected coach data
     const fare = selectedCoachData ? selectedCoachData.fare : 0; // Get the fare for the selected coach
 
-    navigate('/details', { state: { train, selectedCoach, fare } }); // Pass train, selected coach, and fare
+    navigate('/details', { state: { train, selectedCoach, fare,departingStation,arrivingStation,selectedDate } }); // Pass train, selected coach, and fare
   };
 
   return (
@@ -506,7 +507,7 @@ const TrainBookingPage = () => {
                           View Route
                         </button>
                         <button
-                          onClick={() => handleBookNow(train)}
+                          onClick={() => handleBookNow(train,departingStation,arrivingStation,selectedDate)}
                           className="px-4 py-2 bg-yellow-400/20 text-yellow-400 rounded-lg hover:bg-yellow-400/30 transition-colors flex items-center gap-2"
                         >
                           Book Now

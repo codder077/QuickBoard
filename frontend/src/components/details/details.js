@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {API_BASE_URL} from '../../utils/config'
 const Details = () => {
   const location = useLocation();
-  const { train, selectedCoach, fare } = location.state || {}; // Retrieve train, selected coach, and fare from state
+  const navigate = useNavigate();
+  const { train, selectedCoach, fare, departingStation,arrivingStation ,selectedDate} = location.state || {}; // Retrieve train, selected coach, and fare from state
+  console.log(location.state);
   const loadRazorpayScript = async () => {
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
@@ -44,6 +46,7 @@ console.log(passengerDetails)
   const handlePayment = async (method) => {
     console.log(`Payment method selected: ${method}`);
     console.log('Passenger Details:', passengerDetails);
+    console.log(train);
     
     if (method === 'razorpay') {
       try {
@@ -55,11 +58,11 @@ console.log(passengerDetails)
             'Authorization':`Bearer ${localStorage.getItem('token')}`
           },
           body: JSON.stringify({
-            trainId: train.train._id, // Assuming train object has an _id
-            fromStation: train.fromStation, // Adjust as necessary
-            toStation: train.toStation, // Adjust as necessary
-            travelStartDate: train.departureTime, // Adjust as necessary
-            travelEndDate: train.arrivalTime, // Adjust as necessary
+            trainId: train.train.id, // Assuming train object has an _id
+            fromStation: departingStation.id, // Adjust as necessary
+            toStation: arrivingStation.id, // Adjust as necessary
+            travelStartDate: selectedDate, // Adjust as necessary
+            travelEndDate: selectedDate, // Adjust as necessary
             passengers: passengerDetails,
             coach:selectedCoach,
             amount: passengerDetails.length*fare
@@ -80,6 +83,7 @@ console.log(passengerDetails)
             handler: function (response) {
               // Handle successful payment here
               console.log("Payment successful:", response);
+              navigate('/');
             },
             prefill: {
               name: passengerDetails[0]?.name || '', // Prefill with first passenger's name
@@ -140,9 +144,9 @@ console.log(passengerDetails)
               required
             >
               <option value="">Select Gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+              <option value="OTHER">Other</option>
             </select>
             <button type="button" onClick={() => handleRemovePassenger(index)} className="text-red-500">✖</button>
           </div>

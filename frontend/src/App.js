@@ -15,6 +15,7 @@ import Tagline from "./components/tagline/Tagline";
 import Dashboard from "./components/dashboard/dashboard";
 import TrainRoutePage from './pages/TrainRoutePage';
 import Details from './components/details/details';
+import Allowance from './components/whyus/allowance';
 import { Route, Routes } from "react-router-dom";
 
 function App() {
@@ -45,6 +46,7 @@ function App() {
         <Route exact path="/dashboard" element={<Dashboard />} />
         <Route path="/train-route" element={<TrainRoutePage />} />
         <Route path="/details" element={<Details />} />
+        <Route path="/allowance" element={<Allowance />} />
       </Routes>
     </>
   );
