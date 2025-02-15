@@ -111,6 +111,7 @@ class NotificationService {
 
   async sendBookingConfirmation(booking) {
     try {
+      // console.log(booking, "wawwewew");
       const user = await User.findById(booking.user);
 
       await this.transporter.sendMail({
