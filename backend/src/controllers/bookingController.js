@@ -26,6 +26,7 @@ class BookingController {
         coach,
         amount
       } = req.body;
+      console.log(req.body);
 
       // Create booking through service
       const bookingResult = await bookingService.bookTicket(req.user, {
@@ -38,6 +39,7 @@ class BookingController {
         coach,
         amount
       });
+      console.log("hiii");
       const options = {
         amount: amount * 100,
         currency: 'INR',

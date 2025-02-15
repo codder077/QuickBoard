@@ -8,9 +8,12 @@ const Train = require("../models/train");
 class BookingService {
   async bookTicket(user, bookingData) {
     const { trainId, coach, passengers } = bookingData;
+    console.log(bookingData);
+    console.log("hiii354");
 
     // Check seat availability
     const availableSeats = await this.checkSeatAvailability(trainId, coach);
+    console.log("hii343qi");
 
     if (availableSeats <= 0) {
       // Add to waiting queue
