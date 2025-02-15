@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 function About({ iconSrc, title, description }) {
   return (
@@ -18,7 +19,7 @@ function About({ iconSrc, title, description }) {
 
 function Abouts() {
   return (
-    <section className="bg-black/90">
+    <section className="bg-black/90 pt-20">
       <div className="container px-6 py-10 mx-auto">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-white capitalize lg:text-4xl">
@@ -55,6 +56,14 @@ function Abouts() {
             title="Key Features"
             description="We provide innovative features such as predictive ticketing, real-time ticket allocation, and fair pricing policies to ensure an optimized travel experience."
           />
+        </div>
+
+        <div className="text-center mt-8">
+          <Link to="/allowance">
+            <button className="bg-yellow-400 text-black py-2 px-4 rounded hover:bg-yellow-500 transition">
+              Why Government Should Allow Us
+            </button>
+          </Link>
         </div>
       </div>
     </section>
