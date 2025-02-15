@@ -1,48 +1,40 @@
-import React from "react";
-
+import React, { useEffect, useState } from "react";
+import {API_BASE_URL} from '../../utils/config'
 const Dashboard = () => {
-  // Hardcoded user data
-  const userData = {
-    name: "John Doe",
-    email: "john@example.com",
-    totalBookings: 8,
-    activeBookings: 3,
-  };
+  const [userData, setUserData] = useState({});
+  const [bookings, setBookings] = useState([]);
 
-  // Hardcoded booking data
-  const bookings = [
-    {
-      id: "TKT001",
-      trainName: "Rajdhani Express",
-      from: "Delhi",
-      to: "Mumbai",
-      date: "2024-03-25",
-      status: "upcoming",
-      price: 1200,
-      seatNo: "B4-23",
-    },
-    {
-      id: "TKT002",
-      trainName: "Shatabdi Express",
-      from: "Bangalore",
-      to: "Chennai",
-      date: "2024-03-15",
-      status: "completed",
-      price: 800,
-      seatNo: "A2-15",
-    },
-    {
-      id: "TKT003",
-      trainName: "Duronto Express",
-      from: "Kolkata",
-      to: "Delhi",
-      date: "2024-03-10",
-      status: "cancelled",
-      price: 1500,
-      seatNo: "C1-08",
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        console.log("token", token);
 
+        const userResponse = await fetch(`${API_BASE_URL}/users/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const user = await userResponse.json();
+        console.log("456",user);
+        setUserData(user);
+
+        const bookingsResponse = await fetch(`${API_BASE_URL}/bookings`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const bookingsData = await bookingsResponse.json();
+        setBookings(bookingsData.data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  console.log(bookings);
   const getStatusColor = (status) => {
     switch (status) {
       case "upcoming":

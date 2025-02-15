@@ -83,7 +83,7 @@ console.log(passengerDetails)
             handler: function (response) {
               // Handle successful payment here
               console.log("Payment successful:", response);
-              navigate('/');
+              navigate('/success');
             },
             prefill: {
               name: passengerDetails[0]?.name || '', // Prefill with first passenger's name
