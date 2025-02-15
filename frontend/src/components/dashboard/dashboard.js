@@ -111,18 +111,18 @@ const Dashboard = () => {
                     <div className="mt-2 space-y-1">
                       <p className="text-white">
                         From:{" "}
-                        <span className="text-gray-300">{booking?.tickets[0].fromStation.name}</span>
+                        <span className="text-gray-300">{booking?.tickets[0]?.fromStation?.name}</span>
                       </p>
                       <p className="text-white">
-                        To: <span className="text-gray-300">{booking?.tickets[0].toStation.name}</span>
+                        To: <span className="text-gray-300">{booking?.tickets[0]?.toStation?.name}</span>
                       </p>
                       <p className="text-white">
                         Date:{" "}
-                        <span className="text-gray-300">{booking?.tickets[0].bookingDate}</span>
+                        <span className="text-gray-300">{booking?.tickets[0]?.bookingDate}</span>
                       </p>
                       <p className="text-white">
                         Seat:{" "}
-                        <span className="text-gray-300">{booking?.tickets[0].seatNumber}</span>
+                        <span className="text-gray-300">{booking?.tickets[0]?.seatNumber}</span>
                       </p>
                     </div>
                   </div>

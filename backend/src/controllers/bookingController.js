@@ -52,7 +52,7 @@ class BookingController {
         }
         // console.log("Payment:", payment);
         console.log(bookingResult)
-        await notificationService.sendBookingConfirmation(bookingResult);
+        // await notificationService.sendBookingConfirmation(bookingResult);
         res.status(201).json({
             message: 'Order created successfully! Complete payment to confirm.',
             payment,
