@@ -162,13 +162,6 @@ console.log(passengerDetails)
           >
             Pay using Razorpay
           </button>
-          <button 
-            type="button" 
-            className="bg-yellow-400 text-black py-2 px-4 rounded hover:bg-yellow-500 transition" 
-            onClick={() => handlePayment('crypto')}
-          >
-            Pay using Crypto
-          </button>
         </div>
       </form>
     </div>

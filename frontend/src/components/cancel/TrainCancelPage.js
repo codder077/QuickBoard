@@ -1,16 +1,38 @@
 import React, { useState } from "react";
+import { API_BASE_URL } from "../../utils/config";
 
 const TrainCancelPage = () => {
   const [bookingId, setBookingId] = useState("");
   const [reason, setReason] = useState("");
+  const [cancelStatus, setCancelStatus] = useState(null);
+  const [error, setError] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you can handle the form submission logic
-    console.log("Form submitted:", {
-      bookingId,
-      reason,
-    });
+
+    try {
+      console.log("Token being sent:", localStorage.getItem('token'));
+
+      const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/cancel`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          'Authorization':`Bearer ${localStorage.getItem('token')}`
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setCancelStatus(`Cancellation successful: ${data.message}`);
+      setError(null);
+    } catch (error) {
+      console.error("Error cancelling booking:", error);
+      setError("Failed to cancel booking. Please try again.");
+      setCancelStatus(null);
+    }
   };
 
   return (
@@ -39,6 +61,7 @@ const TrainCancelPage = () => {
               className="mt-1 block w-full rounded-xl border border-yellow-400/30 bg-transparent px-5 py-3 text-base text-white outline-none focus:border-yellow-400 focus:shadow-md"
               value={bookingId}
               onChange={(e) => setBookingId(e.target.value)}
+              required
             />
           </div>
           <div>
@@ -51,6 +74,7 @@ const TrainCancelPage = () => {
               className="mt-1 block w-full rounded-xl border border-yellow-400/30 bg-transparent px-5 py-3 text-base text-white outline-none focus:border-yellow-400 focus:shadow-md"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
+              required
             ></textarea>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -65,6 +89,17 @@ const TrainCancelPage = () => {
             </button>
           </div>
         </form>
+
+        {cancelStatus && (
+          <div className="mt-4 p-4 bg-green-700 rounded-lg">
+            <p className="text-white">{cancelStatus}</p>
+          </div>
+        )}
+        {error && (
+          <div className="mt-4 p-4 bg-red-700 rounded-lg">
+            <p className="text-white">{error}</p>
+          </div>
+        )}
       </div>
     </div>
   );
