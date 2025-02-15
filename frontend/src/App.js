@@ -18,6 +18,7 @@ import Details from './components/details/details';
 import Allowance from './components/whyus/allowance';
 import Success from './components/success/success';
 import { Route, Routes } from "react-router-dom";
+import TrainComparisonForm from "./components/delaypred/prediction";
 
 function App() {
   return (
@@ -50,6 +51,7 @@ function App() {
         <Route path="/allowance" element={<Allowance />} />
         <Route path="/success" element={<Success />} />
       </Routes>
+      <TrainComparisonForm />
     </>
   );
 }

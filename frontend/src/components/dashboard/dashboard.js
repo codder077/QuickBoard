@@ -10,7 +10,7 @@ const Dashboard = () => {
         const token = localStorage.getItem("token");
         console.log("token", token);
 
-        const userResponse = await fetch(`${API_BASE_URL}/users/me`, {
+        const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -19,7 +19,7 @@ const Dashboard = () => {
         console.log("456",user);
         setUserData(user);
 
-        const bookingsResponse = await fetch(`${API_BASE_URL}/bookings`, {
+        const bookingsResponse = await fetch(`${API_BASE_URL}/api/bookings`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -34,6 +34,10 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
+  // Calculate total and active bookings
+  const totalBookings = bookings.length;
+  const activeBookings = bookings.filter(booking => booking.tickets[0]?.status === "CONFIRMED").length;
+
   console.log(bookings);
   const getStatusColor = (status) => {
     switch (status) {
@@ -43,6 +47,8 @@ const Dashboard = () => {
         return "text-green-400";
       case "cancelled":
         return "text-red-400";
+      case "CONFIRMED":
+        return "text-yellow-400";
       default:
         return "text-gray-400";
     }
@@ -63,7 +69,7 @@ const Dashboard = () => {
                 Total Bookings
               </h3>
               <p className="text-3xl font-bold text-white mt-2">
-                {userData.totalBookings}
+                {totalBookings}
               </p>
             </div>
             <div className="p-6 rounded-xl border-2 border-yellow-400/30 backdrop-blur-sm">
@@ -71,7 +77,7 @@ const Dashboard = () => {
                 Active Bookings
               </h3>
               <p className="text-3xl font-bold text-white mt-2">
-                {userData.activeBookings}
+                {activeBookings}
               </p>
             </div>
             <div className="p-6 rounded-xl border-2 border-yellow-400/30 backdrop-blur-sm">
@@ -100,40 +106,40 @@ const Dashboard = () => {
                       {booking.trainName}
                     </h3>
                     <p className="text-gray-300 mt-1">
-                      Booking ID: {booking.id}
+                      Booking ID: {booking._id}
                     </p>
                     <div className="mt-2 space-y-1">
                       <p className="text-white">
                         From:{" "}
-                        <span className="text-gray-300">{booking.from}</span>
+                        <span className="text-gray-300">{booking?.tickets[0].fromStation.name}</span>
                       </p>
                       <p className="text-white">
-                        To: <span className="text-gray-300">{booking.to}</span>
+                        To: <span className="text-gray-300">{booking?.tickets[0].toStation.name}</span>
                       </p>
                       <p className="text-white">
                         Date:{" "}
-                        <span className="text-gray-300">{booking.date}</span>
+                        <span className="text-gray-300">{booking?.tickets[0].bookingDate}</span>
                       </p>
                       <p className="text-white">
                         Seat:{" "}
-                        <span className="text-gray-300">{booking.seatNo}</span>
+                        <span className="text-gray-300">{booking?.tickets[0].seatNumber}</span>
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-white">
-                      ₹{booking.price}
+                      ₹{booking.totalFare}
                     </p>
                     <p
                       className={`mt-2 font-semibold capitalize ${getStatusColor(
-                        booking.status
+                        booking.tickets[0]?.status
                       )}`}
                     >
-                      {booking.status}
+                      {booking.tickets[0]?.status}
                     </p>
-                    {booking.status === "upcoming" && (
+                    {booking.tickets[0]?.status === "CONFIRMED" && (
                       <button className="mt-4 px-4 py-2 bg-yellow-400 text-gray-900 rounded-lg font-semibold hover:bg-yellow-300 transform hover:scale-105 transition-all duration-300">
-                        Cancel Booking
+                        Cancel Ticket
                       </button>
                     )}
                   </div>
