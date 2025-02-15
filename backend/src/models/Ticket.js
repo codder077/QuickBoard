@@ -74,10 +74,10 @@ const ticketSchema = new mongoose.Schema(
     },
     transferHistory: 
       {
-        fromUser: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-        },
+        // fromUser: {
+        //   type: mongoose.Schema.Types.ObjectId,
+        //   ref: "User",
+        // },
         toUser: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "User",
