@@ -421,6 +421,7 @@ class BookingController {
       if (buyerIndex !== -1) {
         // Get the buyer request
         const buyerRequest = ticketQueue.queueArray[buyerIndex];
+        console.log(buyerRequest, "wawwewe235253453w");
         // Remove the buyer from queue
         ticketQueue.queueArray.splice(buyerIndex, 1);
         await ticketQueue.save();
@@ -435,7 +436,7 @@ class BookingController {
         // Process transfer to the buyer
         const transferResult = await bookingService.processTransferRequest(
           ticket,
-          buyerRequest.user,
+          buyerRequest.user.toString(),
           buyerRequest.passengerDetails,
           transferFare
         );
@@ -481,7 +482,7 @@ class BookingController {
   async buyTicket(req, res) {
     try {
       const { trainId, coach, passengerDetails } = req.body;
-
+      console.log(trainId, coach, passengerDetails, "wawwewew");
       // Determine queue type based on journey start
       const train = await Train.findById(trainId);
       if (!train) {
@@ -512,10 +513,11 @@ class BookingController {
       }
 
       // Check if there are any sell requests in the queue
+      console.log(ticketQueue.queueArray);
       const sellerIndex = ticketQueue.queueArray.findIndex(
         (request) => request.requestType === "SELL"
       );
-
+      console.log(sellerIndex, "wawwewe235253453w");
       if (sellerIndex !== -1) {
         // Get the seller request
         const sellerRequest = ticketQueue.queueArray[sellerIndex];

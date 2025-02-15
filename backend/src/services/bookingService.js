@@ -303,6 +303,7 @@ class BookingService {
     newPassengerDetails,
     transferFare
   ) {
+    console.log(ticket, newUserId, newPassengerDetails, transferFare, "wawwewew");
     const train = await Train.findById(ticket.train).populate("route.station");
     const hasStarted = await this.hasTrainStarted(train);
     const additionalFare = hasStarted ? ticket.fare * 0.2 : 0; // 20% extra if train started
@@ -371,7 +372,7 @@ class BookingService {
       status: "CONFIRMED",
       booking: newBooking._id,
       transferHistory: {
-        fromUser: ticket.booking.user,
+        // fromUser: ticket.booking.user,
         toUser: newUserId,
         transferredAt: new Date(),
       },
