@@ -29,7 +29,7 @@ class BookingController {
       console.log(req.user, "wawwewew");
       // Create booking through service
       console.log(trainId, fromStation, toStation, travelStartDate, travelEndDate, passengers, "wawwrwrw");
-      const bookingResult = await bookingService.bookTicket(req.user, {
+      const bookingResult = await bookingService.bookTicket(req.user.id, {
         trainId,
         fromStation,
         toStation,
@@ -374,10 +374,6 @@ class BookingController {
       const { pnr } = req.params;
 
       const ticket = await Ticket.findOne({ pnr }).populate([
-        {
-          path: "booking",
-          populate: ["user"],
-        },
         "train",
         "fromStation",
         "toStation",
@@ -389,11 +385,11 @@ class BookingController {
           .json({ success: false, error: "Ticket not found" });
       }
 
-      if (ticket.booking.user.toString() !== req.user.id) {
-        return res
-          .status(403)
-          .json({ success: false, error: "Not authorized" });
-      }
+      // if (ticket.booking.user.toString() !== req.user.id) {
+      //   return res
+      //     .status(403)
+      //     .json({ success: false, error: "Not authorized" });
+      // }
 
       // Determine queue type based on journey start
       const currentDate = new Date();
@@ -457,7 +453,7 @@ class BookingController {
         // If no buyers in queue, add this as a sell request
         const sellingRequest = {
           requestType: "SELL",
-          user: req.user._id,
+          user: req.user.id,
           ticket: ticket._id,
           passengerDetails: ticket.passenger,
           fromStation: ticket.fromStation,
@@ -537,7 +533,7 @@ class BookingController {
         // Process transfer from the seller
         const transferResult = await bookingService.processTransferRequest(
           sellerRequest.ticket,
-          req.user._id,
+          req.user.id,
           passengerDetails,
           transferFare
         );
@@ -555,7 +551,7 @@ class BookingController {
         // If no sellers in queue, add this as a buy request
         const buyingRequest = {
           requestType: "BUY",
-          user: req.user._id,
+          user: req.user.id,
           passengerDetails,
           requestedAt: new Date(),
         };
